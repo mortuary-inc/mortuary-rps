@@ -22,10 +22,10 @@ export const RPS_PROGRAM_ID = new web3.PublicKey(
     "mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk"
 );
 
-// export async function getProceeds(raffle: web3.PublicKey) {
-//     let p = await web3.PublicKey.findProgramAddress([raffle.toBuffer(), Buffer.from("proceeds"),], DRAFFLE_PROGRAM_ID)
-//     return p;
-// }
+export async function getProceeds(game: web3.PublicKey) {
+    let p = await web3.PublicKey.findProgramAddress([game.toBuffer(), Buffer.from("proceeds"),], RPS_PROGRAM_ID)
+    return p;
+}
 // export async function getPrize(raffle: web3.PublicKey, index: number) {
 //     let indexBuf = Buffer.alloc(4)
 //     indexBuf.writeUIntLE(index, 0, 4);
@@ -34,21 +34,36 @@ export const RPS_PROGRAM_ID = new web3.PublicKey(
 // }
 
 export async function initialize(program: Program<Rps>,
-    initiator: web3.Keypair,
+    admin: web3.PublicKey,
+    playerOne: web3.Keypair,
+    ashMint: web3.PublicKey,
+    playerOneAshToken: web3.PublicKey,
+    amount: number,
+    secret: string,
 ) {
 
-    let tx = await program.rpc.initialiseController({
+    let game = new web3.Keypair();
+    let [proceeds] = await getProceeds(game.publicKey);
+
+    let tx = await program.rpc.startGame(amount, {
         accounts: {
-            controllerAccount: initiator.publicKey,
-            user: initiator.publicKey,
+            admin: admin,
+            game: game.publicKey,
+            playerOne: playerOne.publicKey,
+            playerOneTokenAccount: playerOneAshToken,
+            proceeds: proceeds ,
+            proceedsMint: ashMint,
+            rent: web3.SYSVAR_RENT_PUBKEY,
+            clock: web3.SYSVAR_CLOCK_PUBKEY,
+            tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
         },
-        signers: [initiator],
+        signers: [playerOne, game],
     });
 
     await program.provider.connection.confirmTransaction(tx, "confirmed");
 
-    return { k: initiator.publicKey }
+    return { game: game.publicKey }
 }
 
 

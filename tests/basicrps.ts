@@ -63,9 +63,14 @@ describe("rps basic", () => {
 
     it('Create', async () => {
 
-        let user0 = user[0];
+        let { user: u0, ashATA: u0AshToken, ashAmount: u0AshAmount } = await getUserData(0);
+        assert.equal(u0AshAmount, 1000);
+        
+        await initialize(program, admin.publicKey, u0, ashMintPubkey, u0AshToken, 100, "u1secret");
+        
+        let {  ashAmount: u0AshAmount2 } = await getUserData(0);
+        assert.equal(u0AshAmount2, 900);
 
-        await initialize(program, user0);
         // let { raffle, entrants } = await createRaffle(program, admin, ashMintPubkey, Date.now() + 60000, 2, 10);
 
         // let { mint: nftMint, ata: nftAccount } = await createNft(connection, nftCreator, admin.publicKey);
@@ -73,8 +78,6 @@ describe("rps basic", () => {
         // await addPrize(program, admin, raffle, 1, nftAccount, nftMint, 0);
 
         // // u0 buy 1
-        // let { user: u0, ashATA: u0AshToken, ashAmount: u0AshAmount } = await getUserData(0);
-        // assert.equal(u0AshAmount, 1000);
 
         // await buyTicket(program, u0, raffle, entrants, u0AshToken, 1);
 
