@@ -7,7 +7,7 @@ pub struct StartGame<'info> {
     pub game: Account<'info, Game>,
     #[account(mut)]
     pub player_one: Signer<'info>,
-    
+
     #[account(
         init,
         seeds = [game.key().as_ref(), b"proceeds"],
@@ -18,7 +18,7 @@ pub struct StartGame<'info> {
     )]
     pub proceeds: Account<'info, TokenAccount>,
     pub proceeds_mint: Account<'info, Mint>,
-    
+
     pub admin: AccountInfo<'info>,
     #[account(mut)]
     pub player_one_token_account: Account<'info, TokenAccount>,
@@ -29,7 +29,30 @@ pub struct StartGame<'info> {
     pub clock: Sysvar<'info, Clock>,
 }
 
+#[derive(Accounts)]
+pub struct MatchGame<'info> {
+    #[account(mut)]
+    pub game: Account<'info, Game>,
+    #[account(mut)]
+    pub player_two: Signer<'info>,
 
+    #[account(
+        mut,
+        seeds = [game.key().as_ref(), b"proceeds"],
+        bump,
+    )]
+    pub proceeds: Account<'info, TokenAccount>,
+    // pub proceeds_mint: Account<'info, Mint>,
+
+    // pub admin: AccountInfo<'info>,
+    #[account(mut)]
+    pub player_two_token_account: Account<'info, TokenAccount>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+    pub rent: Sysvar<'info, Rent>,
+    pub clock: Sysvar<'info, Clock>,
+}
 
 // #[derive(Accounts)]
 // pub struct Connect<'info> {
@@ -73,7 +96,6 @@ pub struct StartGame<'info> {
 //     pub user : Signer<'info>,
 // }
 
-
 #[account]
 pub struct Game {
     pub admin: Pubkey,
@@ -89,7 +111,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub const LEN: usize = 8+
+    pub const LEN: usize = 32 + 
      32 + // admin
      32 + // mint
       4 + // amount
@@ -99,10 +121,9 @@ impl Game {
       1 + // shape
       1 + // shape
       1 + // stage
-      8 ; // date
+      8; // date
 }
 
-// ? bytes
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, PartialEq, Copy)]
 pub enum Shape {
     Paper = 0,
@@ -110,12 +131,25 @@ pub enum Shape {
     Rock = 2,
 }
 
-// ? bytes
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, PartialEq)]
 pub enum Stage {
-    Initialized,
-    Commit,
-    Reveal,
-    Claim,
-    Complete,
+    Start = 0,
+    Match = 1,
+    Reveal = 2,
+    Claim = 3,
+    Complete = 4,
+    Cancel = 5,
+}
+
+// pub fn shape_as_u8(s: &Shape) -> u8 {
+//     *s as u8
+// }
+
+pub fn shape_from_u8(s: u8) -> Shape {
+    let r = match s {
+        0 => Shape::Paper,
+        1 => Shape::Scissor,
+        _ => Shape::Rock,
+    };
+    r
 }

@@ -5,7 +5,7 @@ import * as web3 from '@solana/web3.js';
 import { SystemProgram } from '@solana/web3.js';
 import * as assert from 'assert';
 import { Rps } from '../target/types/rps';
-import { initialize } from './rpsHelper';
+import { start, Shape, match } from './rpsHelper';
 import { airDrop, createAsh, createNft, disableLogging, restoreLogging, transfer } from './utils';
 
 
@@ -65,11 +65,15 @@ describe("rps basic", () => {
 
         let { user: u0, ashATA: u0AshToken, ashAmount: u0AshAmount } = await getUserData(0);
         assert.equal(u0AshAmount, 1000);
-        
-        await initialize(program, admin.publicKey, u0, ashMintPubkey, u0AshToken, 100, "u1secret");
-        
-        let {  ashAmount: u0AshAmount2 } = await getUserData(0);
+        let { user: u1, ashATA: u1AshToken, ashAmount: u1AshAmount } = await getUserData(1);
+        assert.equal(u1AshAmount, 1000);
+
+        let { game } = await start(program, admin.publicKey, u0, ashMintPubkey, u0AshToken, 100, "u1secret", Shape.Rock);
+
+        let { ashAmount: u0AshAmount2 } = await getUserData(0);
         assert.equal(u0AshAmount2, 900);
+
+        await match(program, game, u1, u1AshToken, Shape.Paper);
 
         // let { raffle, entrants } = await createRaffle(program, admin, ashMintPubkey, Date.now() + 60000, 2, 10);
 

@@ -7,12 +7,17 @@ import { Rps } from '../target/types/rps';
 import { getATA } from './utils';
 import { keccak_256 } from 'js-sha3';
 
-// Output is only u32, so can be a number
-export function expand(randomValue: number[], n: number): number {
+
+export function expand(secret: string, shape: number) {
     const hasher = keccak_256.create();
-    hasher.update(new Uint8Array(randomValue));
-    hasher.update(new anchor.BN(n).toArrayLike(Buffer, 'le', 4));
-    return new anchor.BN(hasher.digest().slice(0, 4), 'le').toNumber();
+    hasher.update(secret);
+    hasher.update(new anchor.BN(shape).toArrayLike(Buffer, 'le', 4));
+    let h = hasher.digest();
+
+    console.log("hash:" + hasher.hex());
+    //  let a = new Uint8Array(h);
+    //return new anchor.BN(hasher.digest().slice(0, 4), 'le').toNumber();
+    return h;
 }
 
 // export type RaffleAccount = IdlAccounts<Draffle>['raffle'];
@@ -33,25 +38,35 @@ export async function getProceeds(game: web3.PublicKey) {
 //     return p;
 // }
 
-export async function initialize(program: Program<Rps>,
+export enum Shape {
+    Paper = 0,
+    Scissor = 1,
+    Rock = 2,
+}
+
+export async function start(program: Program<Rps>,
     admin: web3.PublicKey,
     playerOne: web3.Keypair,
     ashMint: web3.PublicKey,
     playerOneAshToken: web3.PublicKey,
     amount: number,
     secret: string,
+    shape: Shape,
 ) {
 
     let game = new web3.Keypair();
     let [proceeds] = await getProceeds(game.publicKey);
+    let hash = expand(secret, shape);
 
-    let tx = await program.rpc.startGame(amount, {
+    console.log("hash length: " + hash.length);
+
+    let tx = await program.rpc.startGame(amount, hash, {
         accounts: {
             admin: admin,
             game: game.publicKey,
             playerOne: playerOne.publicKey,
             playerOneTokenAccount: playerOneAshToken,
-            proceeds: proceeds ,
+            proceeds: proceeds,
             proceedsMint: ashMint,
             rent: web3.SYSVAR_RENT_PUBKEY,
             clock: web3.SYSVAR_CLOCK_PUBKEY,
@@ -63,7 +78,33 @@ export async function initialize(program: Program<Rps>,
 
     await program.provider.connection.confirmTransaction(tx, "confirmed");
 
-    return { game: game.publicKey }
+    return { game: game.publicKey, proceeds: proceeds }
+}
+
+export async function match(program: Program<Rps>,
+    game: web3.PublicKey,
+    playerTwo: web3.Keypair,
+    playerTwoAshToken: web3.PublicKey,
+    shape: Shape,
+) {
+
+    let [proceeds] = await getProceeds(game);
+
+    let tx = await program.rpc.matchGame(shape, {
+        accounts: {
+            game: game,
+            playerTwo: playerTwo.publicKey,
+            playerTwoTokenAccount: playerTwoAshToken,
+            proceeds: proceeds,
+            rent: web3.SYSVAR_RENT_PUBKEY,
+            clock: web3.SYSVAR_CLOCK_PUBKEY,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+        },
+        signers: [playerTwo],
+    });
+
+    await program.provider.connection.confirmTransaction(tx, "confirmed");
 }
 
 
