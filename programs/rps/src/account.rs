@@ -48,9 +48,18 @@ pub struct MatchGame<'info> {
     #[account(mut)]
     pub player_two_token_account: Account<'info, TokenAccount>,
 
-    pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,
+    pub clock: Sysvar<'info, Clock>,
+}
+
+
+#[derive(Accounts)]
+pub struct RevealGame<'info> {
+    #[account(mut)]
+    pub game: Account<'info, Game>,
+    #[account(mut)]
+    pub player_one: Signer<'info>,
+
     pub clock: Sysvar<'info, Clock>,
 }
 

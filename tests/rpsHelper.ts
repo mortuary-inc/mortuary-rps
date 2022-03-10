@@ -1,22 +1,26 @@
 import * as anchor from '@project-serum/anchor';
+import { Program } from '@project-serum/anchor';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, Token, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { IdlAccounts, Program } from '@project-serum/anchor';
 import { SystemProgram } from '@solana/web3.js';
-import { Rps } from '../target/types/rps';
-import { getATA } from './utils';
 import { keccak_256 } from 'js-sha3';
+import { Rps } from '../target/types/rps';
 
 
 export function expand(secret: string, shape: number) {
+    const secretSmall = getSecretSmall(secret);
+    const hasher = keccak_256.create();
+    hasher.update(secretSmall);
+    hasher.update([shape]);
+    let h = hasher.digest();
+    return h;
+}
+
+export function getSecretSmall(secret: string) {
     const hasher = keccak_256.create();
     hasher.update(secret);
-    hasher.update(new anchor.BN(shape).toArrayLike(Buffer, 'le', 4));
     let h = hasher.digest();
-
     console.log("hash:" + hasher.hex());
-    //  let a = new Uint8Array(h);
-    //return new anchor.BN(hasher.digest().slice(0, 4), 'le').toNumber();
     return h;
 }
 
@@ -96,12 +100,30 @@ export async function match(program: Program<Rps>,
             playerTwo: playerTwo.publicKey,
             playerTwoTokenAccount: playerTwoAshToken,
             proceeds: proceeds,
-            rent: web3.SYSVAR_RENT_PUBKEY,
             clock: web3.SYSVAR_CLOCK_PUBKEY,
             tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
         },
         signers: [playerTwo],
+    });
+
+    await program.provider.connection.confirmTransaction(tx, "confirmed");
+}
+
+export async function reveal(program: Program<Rps>,
+    game: web3.PublicKey,
+    playerOne: web3.Keypair,
+    shape: Shape,
+    secret: string,
+) {
+
+    let h = getSecretSmall(secret);
+    let tx = await program.rpc.revealGame(shape, h, {
+        accounts: {
+            game: game,
+            playerOne: playerOne.publicKey,
+            clock: web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [playerOne],
     });
 
     await program.provider.connection.confirmTransaction(tx, "confirmed");

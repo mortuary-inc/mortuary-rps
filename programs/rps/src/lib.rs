@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use solana_program::keccak::hash;
+use solana_program::keccak;
 
 use crate::account::*;
 use crate::errors::*;
@@ -12,11 +12,13 @@ declare_id!("mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk");
 #[program]
 pub mod rps {
 
+    use std::hash::Hash;
+
     use anchor_spl::token;
 
     use super::*;
 
-    pub fn start_game(ctx: Context<StartGame>, amount: u32, hash : [u8; 32]) -> Result<()> {
+    pub fn start_game(ctx: Context<StartGame>, amount: u32, hash: [u8; 32]) -> Result<()> {
         let game = &mut ctx.accounts.game;
         game.admin = ctx.accounts.admin.key();
         game.player_one = ctx.accounts.player_one.key();
@@ -71,6 +73,37 @@ pub mod rps {
             ),
             game.amount.into(),
         )?;
+
+        Ok(())
+    }
+
+
+    pub fn reveal_game(ctx: Context<RevealGame>, shape: u8, secret: [u8; 32]) -> Result<()> {
+        let game = &mut ctx.accounts.game;
+
+        if game.stage != Stage::Match {
+            return Err(error!(RpsCode::GameNotMatch));
+        }
+
+        game.player_one_revealed = Some(shape_from_u8(shape));
+        game.stage = Stage::Reveal;
+
+        let clock = &ctx.accounts.clock;
+        game.last_update = clock.unix_timestamp;
+
+        msg!("secret: {:x?}", secret);
+        msg!("secret save: {:x?}", game.player_one_committed);
+
+        let mut hasher = keccak::Hasher::default();
+        hasher.hash(&secret);
+        hasher.hash(&shape.to_le_bytes());
+
+        let control = hasher.result().to_bytes();
+        msg!("secret compute1: {:x?}", control);
+
+        let saved = game.player_one_committed.as_ref().unwrap();
+        let it_match = control == *saved;
+        msg!("Does it match ??? {:?}", it_match);
 
         Ok(())
     }
