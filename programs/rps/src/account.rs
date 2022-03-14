@@ -63,50 +63,28 @@ pub struct RevealGame<'info> {
     pub clock: Sysvar<'info, Clock>,
 }
 
-// #[derive(Accounts)]
-// pub struct Connect<'info> {
-//     #[account(mut)]
-//     pub controller_account : Account<'info,ControllerAccount>,
-//     pub user : Signer<'info>,
-// }
 
-// #[derive(Accounts)]
-// pub struct Reveal<'info> {
-//     #[account(mut)]
-//     pub controller_account : Account<'info,ControllerAccount>,
-//     pub user : Signer<'info>,
-// }
+#[account]
+pub struct Bet {
+    pub version: u8,
+    pub admin: Pubkey,
+    pub mint: Option<Pubkey>,
+    pub amount: u32,
+    pub tax: u32,
+}
 
-// #[derive(Accounts)]
-// pub struct Commit<'info> {
-//     #[account(mut)]
-//     pub controller_account : Account<'info,ControllerAccount>,
-//     pub user : Signer<'info>,
-// }
-
-// #[derive(Accounts)]
-// pub struct Claim<'info> {
-//     #[account(mut)]
-//     pub controller_account : Account<'info,ControllerAccount>,
-//     pub user : Signer<'info>,
-// }
-
-// #[derive(Accounts)]
-// pub struct Reset<'info> {
-//     #[account(mut)]
-//     pub controller_account : Account<'info,ControllerAccount>,
-//     pub user : Signer<'info>,
-// }
-
-// #[derive(Accounts)]
-// pub struct Slash<'info> {
-//     #[account(mut)]
-//     pub controller_account : Account<'info,ControllerAccount>,
-//     pub user : Signer<'info>,
-// }
+impl Bet {
+    pub const LEN: usize = 32 + 
+      1 + // version
+     32 + // admin
+     32 + // mint
+      4 + // amount
+      4;  // tax
+}
 
 #[account]
 pub struct Game {
+    pub version: u8,
     pub admin: Pubkey,
     pub mint: Pubkey,
     pub amount: u32,
@@ -121,6 +99,7 @@ pub struct Game {
 
 impl Game {
     pub const LEN: usize = 32 + 
+      1 + // version
      32 + // admin
      32 + // mint
       4 + // amount
@@ -161,4 +140,19 @@ pub fn shape_from_u8(s: u8) -> Shape {
         _ => Shape::Rock,
     };
     r
+}
+
+
+
+
+//
+//
+// Not used for now
+#[derive(Accounts)]
+pub struct CreateBet<'info> {
+    #[account(init, payer = admin, space = Bet::LEN)]
+    pub bet: Account<'info, Bet>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }

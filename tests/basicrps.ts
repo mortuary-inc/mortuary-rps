@@ -6,7 +6,7 @@ import { SystemProgram } from '@solana/web3.js';
 import * as assert from 'assert';
 import { Rps } from '../target/types/rps';
 import { start, Shape, match, reveal } from './rpsHelper';
-import { airDrop, createAsh, createNft, disableLogging, restoreLogging, transfer } from './utils';
+import { airDrop, createAsh, createNft, disableLogging, restoreLogging, test_admin_key, transfer } from './utils';
 
 
 describe("rps basic", () => {
@@ -16,7 +16,7 @@ describe("rps basic", () => {
 
     const program = anchor.workspace.Rps as Program<Rps>;
     const connection = provider.connection;
-    const admin = web3.Keypair.generate();
+    const admin = test_admin_key;
     const ashCreator = web3.Keypair.generate();
 
     let ashMintToken: Token;
