@@ -5,7 +5,7 @@ import * as web3 from '@solana/web3.js';
 import { SystemProgram } from '@solana/web3.js';
 import * as assert from 'assert';
 import { Rps } from '../target/types/rps';
-import { start, Shape, match, reveal } from './rpsHelper';
+import { start, Shape, match, reveal, initBank } from './rpsHelper';
 import { airDrop, createAsh, createNft, disableLogging, restoreLogging, test_admin_key, transfer } from './utils';
 
 
@@ -51,6 +51,7 @@ describe("rps basic", () => {
         assert.equal(ashCreatorAshAccountInfo.amount.toNumber(), 1_400_000);
         assert.equal(adminAshAccountInfo.amount.toNumber(), 100_000);
 
+        await initBank(program, admin, ashMintPubkey);
 
         // give 1000 ash to all user
         promises = [];

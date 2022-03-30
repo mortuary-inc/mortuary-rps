@@ -1,6 +1,6 @@
 import * as anchor from '@project-serum/anchor';
-import { Program } from '@project-serum/anchor';
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { IdlAccounts, Program } from '@project-serum/anchor';
+import { AccountLayout, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import { SystemProgram } from '@solana/web3.js';
 import { keccak_256 } from 'js-sha3';
@@ -24,8 +24,7 @@ export function getSecretSmall(secret: string) {
     return h;
 }
 
-// export type RaffleAccount = IdlAccounts<Draffle>['raffle'];
-// export type EntrantAccount = IdlAccounts<Draffle>['entrants'];
+export type GameAccount = IdlAccounts<Rps>['game'];
 
 export const RPS_PROGRAM_ID = new web3.PublicKey(
     "mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk"
@@ -35,17 +34,53 @@ export async function getProceeds(game: web3.PublicKey) {
     let p = await web3.PublicKey.findProgramAddress([game.toBuffer(), Buffer.from("proceeds"),], RPS_PROGRAM_ID)
     return p;
 }
-// export async function getPrize(raffle: web3.PublicKey, index: number) {
-//     let indexBuf = Buffer.alloc(4)
-//     indexBuf.writeUIntLE(index, 0, 4);
-//     let p = await web3.PublicKey.findProgramAddress([raffle.toBuffer(), Buffer.from("prize"), indexBuf,], DRAFFLE_PROGRAM_ID)
-//     return p;
-// }
+
+export async function getBankConfigAddress(mint: web3.PublicKey) {
+    const adr = await web3.PublicKey.findProgramAddress([mint.toBuffer(), Buffer.from("bank"),], RPS_PROGRAM_ID)
+    return adr;
+};
+
 
 export enum Shape {
     Paper = 0,
     Scissor = 1,
     Rock = 2,
+}
+
+
+export async function initBank(program: Program<Rps>,
+    admin: web3.Keypair,
+    ashMint: web3.PublicKey,
+) {
+    let bank = new web3.Keypair();
+
+    let connection = program.provider.connection;
+    const createBankAccountIx = SystemProgram.createAccount({
+        programId: TOKEN_PROGRAM_ID,
+        space: AccountLayout.span,
+        lamports: await connection.getMinimumBalanceForRentExemption(AccountLayout.span),
+        fromPubkey: admin.publicKey,
+        newAccountPubkey: bank.publicKey,
+    });
+    const initBankAccountIx = Token.createInitAccountInstruction(TOKEN_PROGRAM_ID, ashMint, bank.publicKey, admin.publicKey);
+    const [bankConfigPubkey, bump] = await getBankConfigAddress(ashMint);
+
+    let tx = await program.rpc.initBank(bump, {
+        accounts: {
+            bankConfig: bankConfigPubkey,
+            admin: admin.publicKey,
+            bank: bank.publicKey,
+            bankMint: ashMint,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+        },
+        signers: [admin, bank],
+        instructions: [createBankAccountIx, initBankAccountIx]
+    });
+
+    await program.provider.connection.confirmTransaction(tx, "confirmed");
+
+    return { bank: bank }
 }
 
 export async function start(program: Program<Rps>,
@@ -58,13 +93,12 @@ export async function start(program: Program<Rps>,
     shape: Shape,
 ) {
 
+    let duration = 8 * 60 * 60;
     let game = new web3.Keypair();
-    let [proceeds] = await getProceeds(game.publicKey);
+    let [proceeds, pbump] = await getProceeds(game.publicKey);
     let hash = expand(secret, shape);
 
-    console.log("hash length: " + hash.length);
-
-    let tx = await program.rpc.startGame(amount, hash, {
+    let tx = await program.rpc.startGame(pbump, new anchor.BN(amount), hash, new anchor.BN(duration), {
         accounts: {
             admin: admin,
             game: game.publicKey,
@@ -92,9 +126,9 @@ export async function match(program: Program<Rps>,
     shape: Shape,
 ) {
 
-    let [proceeds] = await getProceeds(game);
+    let [proceeds, pbump] = await getProceeds(game);
 
-    let tx = await program.rpc.matchGame(shape, {
+    let tx = await program.rpc.matchGame(pbump, shape, {
         accounts: {
             game: game,
             playerTwo: playerTwo.publicKey,
