@@ -1,4 +1,10 @@
+use std::str::FromStr;
+
 use anchor_lang::prelude::*;
+use anchor_spl::token;
+use solana_program::program::invoke;
+use solana_program::program::invoke_signed;
+use solana_program::system_instruction;
 use spl_token::instruction::AuthorityType;
 
 use solana_program::keccak;
@@ -22,11 +28,10 @@ pub mod constants {
 declare_id!("mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk");
 
 const PDA_SEED: &[u8] = b"pda";
+const WSOL: &str = "So11111111111111111111111111111111111111112";
 
 #[program]
 pub mod rps {
-
-    use anchor_spl::token::{self};
 
     use super::*;
 
@@ -40,6 +45,8 @@ pub mod rps {
         ctx.accounts.bank_config.admin = ctx.accounts.admin.key();
         ctx.accounts.bank_config.bank = ctx.accounts.bank.key();
         ctx.accounts.bank_config.mint = ctx.accounts.bank_mint.key();
+        ctx.accounts.bank_config.tax = 12;
+        ctx.accounts.bank_config.tax_draw = 0;
 
         let (pda, _bump_seed) = Pubkey::find_program_address(
             &[ctx.accounts.bank_mint.key().as_ref(), PDA_SEED],
@@ -78,33 +85,47 @@ pub mod rps {
             return Err(error!(RpsCode::InvalidAdmin));
         }
 
+        msg!("Start game");
+
         let game = &mut ctx.accounts.game;
         game.version = 1;
         game.admin = ctx.accounts.admin.key();
         game.player_one = ctx.accounts.player_one.key();
         game.player_one_committed = Some(hash);
         game.player_one_revealed = None;
-        game.player_two = None;
+        // game.player_two = None;
         game.player_two_revealed = None;
         game.stage = Stage::Start;
         game.amount = amount;
         game.mint = ctx.accounts.proceeds_mint.key();
         game.duration = duration;
-        
+        game.player_one_token_account = ctx.accounts.player_one_token_account.key();
+        game.player_two_token_account = ctx.accounts.player_one_token_account.key();
+
         let clock = &ctx.accounts.clock;
         game.last_update = clock.unix_timestamp;
 
-        token::transfer(
-            CpiContext::new(
+        msg!("Ready to transfer");
+
+        if game.mint == Pubkey::from_str(WSOL).unwrap() {
+            // native
+            transfer_native(
+                game.amount,
+                ctx.accounts.player_one.to_account_info(),
+                ctx.accounts.proceeds.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            )?;
+        } else {
+            msg!("Transfer token");
+
+            transfer(
+                game.amount,
+                ctx.accounts.player_one_token_account.to_account_info(),
+                ctx.accounts.proceeds.to_account_info(),
                 ctx.accounts.token_program.to_account_info(),
-                token::Transfer {
-                    from: ctx.accounts.player_one_token_account.to_account_info(),
-                    to: ctx.accounts.proceeds.to_account_info(),
-                    authority: ctx.accounts.player_one.to_account_info(),
-                },
-            ),
-            amount.into(),
-        )?;
+                ctx.accounts.player_one.to_account_info(),
+            )?;
+        }
 
         Ok(())
     }
@@ -116,29 +137,41 @@ pub mod rps {
             return Err(error!(RpsCode::GameNotStart));
         }
 
-        game.player_two = Some(ctx.accounts.player_two.key());
+        game.player_two = ctx.accounts.player_two.key();
         game.player_two_revealed = Some(shape_from_u8(shape));
+        game.player_two_token_account = ctx.accounts.player_two_token_account.key();
         game.stage = Stage::Match;
 
         let clock = &ctx.accounts.clock;
         game.last_update = clock.unix_timestamp;
 
-        token::transfer(
-            CpiContext::new(
+        if game.mint == Pubkey::from_str(WSOL).unwrap() {
+            // native
+            transfer_native(
+                game.amount,
+                ctx.accounts.player_two.to_account_info(),
+                ctx.accounts.proceeds.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            )?;
+        } else {
+            transfer(
+                game.amount,
+                ctx.accounts.player_two_token_account.to_account_info(),
+                ctx.accounts.proceeds.to_account_info(),
                 ctx.accounts.token_program.to_account_info(),
-                token::Transfer {
-                    from: ctx.accounts.player_two_token_account.to_account_info(),
-                    to: ctx.accounts.proceeds.to_account_info(),
-                    authority: ctx.accounts.player_two.to_account_info(),
-                },
-            ),
-            game.amount.into(),
-        )?;
+                ctx.accounts.player_two.to_account_info(),
+            )?;
+        }
 
         Ok(())
     }
 
-    pub fn reveal_game(ctx: Context<RevealGame>, shape: u8, secret: [u8; 32]) -> Result<()> {
+    pub fn reveal_game(
+        ctx: Context<RevealGame>,
+        _bump: u8,
+        shape: u8,
+        secret: [u8; 32],
+    ) -> Result<()> {
         let game = &mut ctx.accounts.game;
 
         if game.stage != Stage::Match {
@@ -176,12 +209,63 @@ pub mod rps {
             (Shape::Scissor, Shape::Paper) => 1,
             _ => 0,
         };
+
+        let player1_amount = 0;
+        let player2_amount = 0;
+        let bank_amount = 0;
+
         if winner == 0 {
             msg!("Draw");
-            // distribute back (+commission optionnel)
         } else {
             msg!("Player{} win", winner);
             // distribute to winner + commission
+        }
+
+        let is_native = if game.mint.to_string() == WSOL {
+            true
+        } else {
+            false
+        };
+
+        if is_native {
+            if player1_amount > 0 {
+                transfer_native(
+                    game.amount,
+                    ctx.accounts.proceeds.to_account_info(),
+                    ctx.accounts.player_one.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                )?;
+            }
+            if player2_amount > 0 {
+                transfer_native(
+                    game.amount,
+                    ctx.accounts.proceeds.to_account_info(),
+                    ctx.accounts.player_two.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                )?;
+            }
+            if bank_amount > 0 {
+                transfer_native(
+                    game.amount,
+                    ctx.accounts.proceeds.to_account_info(),
+                    ctx.accounts.bank.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                )?;
+            }
+        } else {
+            if player1_amount > 0 {
+                // let (_pda, bump_seed) = Pubkey::find_program_address(&[pda_seed], program_id);
+                // let seeds = &[&pda_seed[..], &[bump_seed]];
+
+                // transfer(
+                //     game.amount,
+                //     ctx.accounts.proceeds.to_account_info(),
+                //     ctx.accounts.player_one_token_account.to_account_info(),
+                //     ctx.accounts.token_program.to_account_info(),
+                // )?;
+            }
+            if player2_amount > 0 {}
+            if bank_amount > 0 {}
         }
 
         Ok(())
@@ -192,6 +276,8 @@ pub mod rps {
 
     // player 1 can cancel if no one join
     // nothing happen
+
+    // when closing game, save stats to a light weight account
 
     // pub fn send_back_ash<'a>(
     //     ash_amount: u64,
@@ -240,4 +326,58 @@ pub mod rps {
 
     //     Ok(())
     // }
+}
+
+pub fn transfer<'a>(
+    amount: u64,
+    from_account: AccountInfo<'a>,
+    to_account: AccountInfo<'a>,
+    token_program: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+) -> Result<()> {
+    assert_owned_by(&from_account, &spl_token::id())?;
+    assert_owned_by(&to_account, &spl_token::id())?;
+    // token::transfer(
+    //     CpiContext::new(
+    //         token_program,
+    //         token::Transfer {
+    //             from: from_account.clone(),
+    //             to: to_account,
+    //             authority: authority,
+    //         },
+    //     ),
+    //     amount,
+    // )?;
+    //&[&seeds[..]],
+
+    let transfer_ix = spl_token::instruction::transfer(
+        &spl_token::ID,
+        from_account.key,
+        to_account.key,
+        authority.key,
+        &[],
+        amount,
+    )?;
+    solana_program::program::invoke_signed(
+        &transfer_ix,
+        &[from_account, to_account, authority, token_program],
+        &[],
+    )?;
+
+    Ok(())
+}
+
+pub fn transfer_native<'a>(
+    amount: u64,
+    from_native: AccountInfo<'a>,
+    to_native: AccountInfo<'a>,
+    system_program: AccountInfo<'a>,
+) -> Result<()> {
+    invoke_signed(
+        &system_instruction::transfer(from_native.key, to_native.key, amount),
+        &[from_native, to_native, system_program],
+        &[]
+    )?;
+
+    Ok(())
 }

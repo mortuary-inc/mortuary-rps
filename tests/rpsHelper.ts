@@ -25,6 +25,7 @@ export function getSecretSmall(secret: string) {
 }
 
 export type GameAccount = IdlAccounts<Rps>['game'];
+export type BankConfig = IdlAccounts<Rps>['bankConfig'];
 
 export const RPS_PROGRAM_ID = new web3.PublicKey(
     "mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk"
@@ -136,6 +137,7 @@ export async function match(program: Program<Rps>,
             proceeds: proceeds,
             clock: web3.SYSVAR_CLOCK_PUBKEY,
             tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
         },
         signers: [playerTwo],
     });
@@ -150,12 +152,25 @@ export async function reveal(program: Program<Rps>,
     secret: string,
 ) {
 
+    let gameData = (await program.account.game.fetch(game) as unknown) as GameAccount;
+    let [config] = await getBankConfigAddress(gameData.mint);
+    let [proceeds, pbump] = await getProceeds(game);
+    let bankConfig = (await program.account.bankConfig.fetch(config) as unknown) as BankConfig;
+
     let h = getSecretSmall(secret);
-    let tx = await program.rpc.revealGame(shape, h, {
+    let tx = await program.rpc.revealGame(pbump, shape, h, {
         accounts: {
             game: game,
             playerOne: playerOne.publicKey,
+            playerTwo: gameData.playerTwo,
+            playerOneTokenAccount: gameData.playerOneTokenAccount,
+            playerTwoTokenAccount: gameData.playerTwoTokenAccount,
+            proceeds: proceeds,
+            bank: bankConfig.bank,
+            config: config,
             clock: web3.SYSVAR_CLOCK_PUBKEY,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
         },
         signers: [playerOne],
     });
