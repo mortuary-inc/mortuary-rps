@@ -27,7 +27,7 @@ pub mod constants {
 
 declare_id!("mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk");
 
-const PDA_SEED: &[u8] = b"pda";
+const PDA_SEED: &[u8] = b"bank";
 const WSOL: &str = "So11111111111111111111111111111111111111112";
 
 #[program]
@@ -76,7 +76,6 @@ pub mod rps {
 
     pub fn start_game(
         ctx: Context<StartGame>,
-        _bump: u8,
         amount: u64,
         hash: [u8; 32],
         duration: i64,
@@ -89,6 +88,7 @@ pub mod rps {
 
         let game = &mut ctx.accounts.game;
         game.version = 1;
+        game.game_id = ctx.accounts.game_id.key();
         game.admin = ctx.accounts.admin.key();
         game.player_one = ctx.accounts.player_one.key();
         game.player_one_committed = Some(hash);
@@ -114,6 +114,7 @@ pub mod rps {
                 ctx.accounts.player_one.to_account_info(),
                 ctx.accounts.proceeds.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
+                &[],
             )?;
         } else {
             msg!("Transfer token");
@@ -124,13 +125,14 @@ pub mod rps {
                 ctx.accounts.proceeds.to_account_info(),
                 ctx.accounts.token_program.to_account_info(),
                 ctx.accounts.player_one.to_account_info(),
+                &[],
             )?;
         }
 
         Ok(())
     }
 
-    pub fn match_game(ctx: Context<MatchGame>, _bump: u8, shape: u8) -> Result<()> {
+    pub fn match_game(ctx: Context<MatchGame>, shape: u8) -> Result<()> {
         let game = &mut ctx.accounts.game;
 
         if game.stage != Stage::Start {
@@ -152,6 +154,7 @@ pub mod rps {
                 ctx.accounts.player_two.to_account_info(),
                 ctx.accounts.proceeds.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
+                &[],
             )?;
         } else {
             transfer(
@@ -160,6 +163,7 @@ pub mod rps {
                 ctx.accounts.proceeds.to_account_info(),
                 ctx.accounts.token_program.to_account_info(),
                 ctx.accounts.player_two.to_account_info(),
+                &[],
             )?;
         }
 
@@ -168,7 +172,6 @@ pub mod rps {
 
     pub fn reveal_game(
         ctx: Context<RevealGame>,
-        _bump: u8,
         shape: u8,
         secret: [u8; 32],
     ) -> Result<()> {
@@ -210,15 +213,37 @@ pub mod rps {
             _ => 0,
         };
 
-        let player1_amount = 0;
-        let player2_amount = 0;
-        let bank_amount = 0;
+        let mut player1_amount = 0;
+        let mut player2_amount = 0;
+        let mut bank_amount = 0;
 
         if winner == 0 {
             msg!("Draw");
+            player1_amount = game.amount;
+            player2_amount = game.amount;
         } else {
             msg!("Player{} win", winner);
             // distribute to winner + commission
+            let player_gain = game
+                .amount
+                .checked_mul(2)
+                .ok_or(RpsCode::NumericalOverflow)?;
+            let taxpct = ctx.accounts.config.tax.into();
+            let fee = player_gain
+                .checked_mul(taxpct)
+                .ok_or(RpsCode::NumericalOverflow)?
+                .checked_div(100)
+                .ok_or(RpsCode::NumericalOverflow)? as u64;
+            bank_amount = fee.checked_mul(2).ok_or(RpsCode::NumericalOverflow)?;
+            if winner == 1 {
+                player1_amount = player_gain
+                    .checked_sub(bank_amount)
+                    .ok_or(RpsCode::NumericalOverflow)?;
+            } else {
+                player2_amount = player_gain
+                    .checked_sub(bank_amount)
+                    .ok_or(RpsCode::NumericalOverflow)?;
+            }
         }
 
         let is_native = if game.mint.to_string() == WSOL {
@@ -227,45 +252,71 @@ pub mod rps {
             false
         };
 
+        let game_key = game.game_id;
+        let (_, nonce) =
+            Pubkey::find_program_address(&[b"game".as_ref(), game_key.as_ref()], ctx.program_id);
+        let seeds = &[b"game".as_ref(), game_key.as_ref(), &[nonce]];
+        let signer_seeds = &[&seeds[..]];
+
         if is_native {
             if player1_amount > 0 {
                 transfer_native(
-                    game.amount,
+                    player1_amount,
                     ctx.accounts.proceeds.to_account_info(),
                     ctx.accounts.player_one.to_account_info(),
                     ctx.accounts.system_program.to_account_info(),
+                    signer_seeds,
                 )?;
             }
             if player2_amount > 0 {
                 transfer_native(
-                    game.amount,
+                    player2_amount,
                     ctx.accounts.proceeds.to_account_info(),
                     ctx.accounts.player_two.to_account_info(),
                     ctx.accounts.system_program.to_account_info(),
+                    signer_seeds,
                 )?;
             }
             if bank_amount > 0 {
                 transfer_native(
-                    game.amount,
+                    bank_amount,
                     ctx.accounts.proceeds.to_account_info(),
                     ctx.accounts.bank.to_account_info(),
                     ctx.accounts.system_program.to_account_info(),
+                    signer_seeds,
                 )?;
             }
         } else {
             if player1_amount > 0 {
-                // let (_pda, bump_seed) = Pubkey::find_program_address(&[pda_seed], program_id);
-                // let seeds = &[&pda_seed[..], &[bump_seed]];
-
-                // transfer(
-                //     game.amount,
-                //     ctx.accounts.proceeds.to_account_info(),
-                //     ctx.accounts.player_one_token_account.to_account_info(),
-                //     ctx.accounts.token_program.to_account_info(),
-                // )?;
+                transfer(
+                    player1_amount,
+                    ctx.accounts.proceeds.to_account_info(),
+                    ctx.accounts.player_one_token_account.to_account_info(),
+                    ctx.accounts.token_program.to_account_info(),
+                    ctx.accounts.game.to_account_info(),
+                    signer_seeds,
+                )?;
             }
-            if player2_amount > 0 {}
-            if bank_amount > 0 {}
+            if player2_amount > 0 {
+                transfer(
+                    player2_amount,
+                    ctx.accounts.proceeds.to_account_info(),
+                    ctx.accounts.player_two_token_account.to_account_info(),
+                    ctx.accounts.token_program.to_account_info(),
+                    ctx.accounts.game.to_account_info(),
+                    signer_seeds,
+                )?;
+            }
+            if bank_amount > 0 {
+                transfer(
+                    bank_amount,
+                    ctx.accounts.proceeds.to_account_info(),
+                    ctx.accounts.player_two_token_account.to_account_info(),
+                    ctx.accounts.token_program.to_account_info(),
+                    ctx.accounts.game.to_account_info(),
+                    signer_seeds,
+                )?;
+            }
         }
 
         Ok(())
@@ -334,6 +385,7 @@ pub fn transfer<'a>(
     to_account: AccountInfo<'a>,
     token_program: AccountInfo<'a>,
     authority: AccountInfo<'a>,
+    signers_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     assert_owned_by(&from_account, &spl_token::id())?;
     assert_owned_by(&to_account, &spl_token::id())?;
@@ -361,7 +413,7 @@ pub fn transfer<'a>(
     solana_program::program::invoke_signed(
         &transfer_ix,
         &[from_account, to_account, authority, token_program],
-        &[],
+        signers_seeds,
     )?;
 
     Ok(())
@@ -372,11 +424,12 @@ pub fn transfer_native<'a>(
     from_native: AccountInfo<'a>,
     to_native: AccountInfo<'a>,
     system_program: AccountInfo<'a>,
+    signers_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     invoke_signed(
         &system_instruction::transfer(from_native.key, to_native.key, amount),
         &[from_native, to_native, system_program],
-        &[]
+        signers_seeds,
     )?;
 
     Ok(())

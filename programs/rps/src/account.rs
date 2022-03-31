@@ -23,11 +23,39 @@ pub struct InitBank<'info> {
 }
 
 
+
+// #[account(
+//     init,
+//     seeds = [b"raffle".as_ref(), entrants.key().as_ref()],
+//     bump,
+//     payer = creator,
+//     space = 8 + 300, // Option serialization workaround
+// )]
+// pub raffle: Account<'info, Raffle>,
+// #[account(zero)]
+// pub entrants: Loader<'info, Entrants>,
+// #[account(mut)]
+// pub creator: Signer<'info>,
+// #[account(
+//     init,
+//     seeds = [raffle.key().as_ref(), b"proceeds"],
+//     bump,
+//     payer = creator,
+//     token::mint = proceeds_mint,
+//     token::authority = raffle,
+// )]
+
 #[derive(Accounts)]
-#[instruction(bump: u8)]
 pub struct StartGame<'info> {
-    #[account(init, payer = player_one, space = Game::LEN)]
+    #[account(
+        init,
+        seeds = [b"game".as_ref(), game_id.key().as_ref()],
+        bump,
+        payer = player_one, 
+        space = Game::LEN
+    )]
     pub game: Account<'info, Game>,
+    pub game_id: UncheckedAccount<'info>,
     #[account(mut)]
     pub player_one: Signer<'info>,
 
@@ -53,7 +81,6 @@ pub struct StartGame<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(bump: u8)]
 pub struct MatchGame<'info> {
     #[account(mut)]
     pub game: Account<'info, Game>,
@@ -76,7 +103,6 @@ pub struct MatchGame<'info> {
 
 
 #[derive(Accounts)]
-#[instruction(bump: u8)]
 pub struct RevealGame<'info> {
     #[account(mut, close = player_one)]
     pub game: Account<'info, Game>,
@@ -141,6 +167,7 @@ pub struct Game {
     pub admin: Pubkey,
     pub mint: Pubkey,
     pub amount: u64,
+    pub game_id: Pubkey,
     pub player_one: Pubkey,
     pub player_two: Pubkey,
     pub player_one_token_account: Pubkey,
@@ -151,7 +178,6 @@ pub struct Game {
     pub stage: Stage,
     pub last_update: i64,
     pub duration: i64,
-    pub time: u8,
 }
 
 impl Game {
@@ -160,6 +186,7 @@ impl Game {
      32 + // admin
      32 + // mint
       4 + // amount
+     32 + // id
      32 + // player 1
      32 + // player 2
      32 + // player 1 token account

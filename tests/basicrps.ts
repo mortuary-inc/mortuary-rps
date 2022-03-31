@@ -74,6 +74,9 @@ describe("rps basic", () => {
         let { ashAmount: u0AshAmount2 } = await getUserData(0);
         assert.equal(u0AshAmount2, 900);
 
+        let rent = await program.provider.connection.getMinimumBalanceForRentExemption(312);
+        console.log("rent: " + rent / web3.LAMPORTS_PER_SOL);
+
         // match
         await match(program, game, u1, u1AshToken, Shape.Paper);
         let { ashAmount: u1AshAmount2 } = await getUserData(1);

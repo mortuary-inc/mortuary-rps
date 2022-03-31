@@ -23,6 +23,8 @@ pub enum RpsCode {
     GameNotCancel,
     #[msg("Invalid account owner")]
     IncorrectOwner,
+    #[msg("Numerical Overflow")]
+    NumericalOverflow,
 }
 
 pub fn assert_owned_by(account: &AccountInfo, owner: &Pubkey) -> Result<()> {

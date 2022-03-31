@@ -31,6 +31,10 @@ export const RPS_PROGRAM_ID = new web3.PublicKey(
     "mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk"
 );
 
+export async function getGame(gameId: web3.PublicKey) {
+    let p = await web3.PublicKey.findProgramAddress([Buffer.from("game"), gameId.toBuffer()], RPS_PROGRAM_ID)
+    return p;
+}
 export async function getProceeds(game: web3.PublicKey) {
     let p = await web3.PublicKey.findProgramAddress([game.toBuffer(), Buffer.from("proceeds"),], RPS_PROGRAM_ID)
     return p;
@@ -95,14 +99,16 @@ export async function start(program: Program<Rps>,
 ) {
 
     let duration = 8 * 60 * 60;
-    let game = new web3.Keypair();
-    let [proceeds, pbump] = await getProceeds(game.publicKey);
+    let gameId = new web3.Keypair();
+    let [game, gbump] = await getGame(gameId.publicKey);
+    let [proceeds, pbump] = await getProceeds(game);
     let hash = expand(secret, shape);
 
-    let tx = await program.rpc.startGame(pbump, new anchor.BN(amount), hash, new anchor.BN(duration), {
+    let tx = await program.rpc.startGame(new anchor.BN(amount), hash, new anchor.BN(duration), {
         accounts: {
             admin: admin,
-            game: game.publicKey,
+            game: game,
+            gameId: gameId.publicKey,
             playerOne: playerOne.publicKey,
             playerOneTokenAccount: playerOneAshToken,
             proceeds: proceeds,
@@ -112,12 +118,12 @@ export async function start(program: Program<Rps>,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
         },
-        signers: [playerOne, game],
+        signers: [playerOne],
     });
 
     await program.provider.connection.confirmTransaction(tx, "confirmed");
 
-    return { game: game.publicKey, proceeds: proceeds }
+    return { game: game, proceeds: proceeds }
 }
 
 export async function match(program: Program<Rps>,
@@ -127,9 +133,9 @@ export async function match(program: Program<Rps>,
     shape: Shape,
 ) {
 
-    let [proceeds, pbump] = await getProceeds(game);
+    let [proceeds] = await getProceeds(game);
 
-    let tx = await program.rpc.matchGame(pbump, shape, {
+    let tx = await program.rpc.matchGame(shape, {
         accounts: {
             game: game,
             playerTwo: playerTwo.publicKey,
@@ -154,11 +160,11 @@ export async function reveal(program: Program<Rps>,
 
     let gameData = (await program.account.game.fetch(game) as unknown) as GameAccount;
     let [config] = await getBankConfigAddress(gameData.mint);
-    let [proceeds, pbump] = await getProceeds(game);
+    let [proceeds] = await getProceeds(game);
     let bankConfig = (await program.account.bankConfig.fetch(config) as unknown) as BankConfig;
 
     let h = getSecretSmall(secret);
-    let tx = await program.rpc.revealGame(pbump, shape, h, {
+    let tx = await program.rpc.revealGame(shape, h, {
         accounts: {
             game: game,
             playerOne: playerOne.publicKey,
