@@ -1,4 +1,4 @@
-use anchor_lang::{prelude::*, accounts::program_account::ProgramAccount};
+use anchor_lang::{prelude::*};
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use std::mem::size_of;
 
@@ -22,28 +22,6 @@ pub struct InitBank<'info> {
   pub token_program: Program<'info, Token>,
 }
 
-
-
-// #[account(
-//     init,
-//     seeds = [b"raffle".as_ref(), entrants.key().as_ref()],
-//     bump,
-//     payer = creator,
-//     space = 8 + 300, // Option serialization workaround
-// )]
-// pub raffle: Account<'info, Raffle>,
-// #[account(zero)]
-// pub entrants: Loader<'info, Entrants>,
-// #[account(mut)]
-// pub creator: Signer<'info>,
-// #[account(
-//     init,
-//     seeds = [raffle.key().as_ref(), b"proceeds"],
-//     bump,
-//     payer = creator,
-//     token::mint = proceeds_mint,
-//     token::authority = raffle,
-// )]
 
 #[derive(Accounts)]
 pub struct StartGame<'info> {
@@ -125,7 +103,7 @@ pub struct RevealGame<'info> {
         constraint = config.bank == *bank.key,
         constraint = config.admin == game.admin,)]
     pub config: Account<'info, BankConfig>,
-    #[account(mut, constraint = *player_two_token_account.key == game.player_two_token_account)]
+    #[account(mut)]
     pub bank: UncheckedAccount<'info>,
     pub clock: Sysvar<'info, Clock>,
     pub system_program: Program<'info, System>,

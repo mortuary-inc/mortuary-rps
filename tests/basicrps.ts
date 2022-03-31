@@ -21,6 +21,7 @@ describe("rps basic", () => {
 
     let ashMintToken: Token;
     let ashMintPubkey: web3.PublicKey;
+    let bankPubkey: web3.PublicKey;
 
     let user: web3.Keypair[] = [];
 
@@ -51,7 +52,10 @@ describe("rps basic", () => {
         assert.equal(ashCreatorAshAccountInfo.amount.toNumber(), 1_400_000);
         assert.equal(adminAshAccountInfo.amount.toNumber(), 100_000);
 
-        await initBank(program, admin, ashMintPubkey);
+        let { bank } = await initBank(program, admin, ashMintPubkey);
+        bankPubkey = bank.publicKey;
+
+        console.log("bank: " + bankPubkey.toString());
 
         // give 1000 ash to all user
         promises = [];
@@ -64,26 +68,36 @@ describe("rps basic", () => {
 
     it('Create', async () => {
 
-        let { user: u0, ashATA: u0AshToken, ashAmount: u0AshAmount } = await getUserData(0);
+        let { user: u1, ashATA: u0AshToken, ashAmount: u0AshAmount } = await getUserData(1);
         assert.equal(u0AshAmount, 1000);
-        let { user: u1, ashATA: u1AshToken, ashAmount: u1AshAmount } = await getUserData(1);
+        let { user: u2, ashATA: u1AshToken, ashAmount: u1AshAmount } = await getUserData(2);
         assert.equal(u1AshAmount, 1000);
 
+        let bankAsh = await getBankAsh();
+        assert.equal(bankAsh, 0);
+
         // start
-        let { game } = await start(program, admin.publicKey, u0, ashMintPubkey, u0AshToken, 100, "u1secret", Shape.Rock);
-        let { ashAmount: u0AshAmount2 } = await getUserData(0);
-        assert.equal(u0AshAmount2, 900);
+        let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u0AshToken, 100, "u1secret", Shape.Rock);
+        let u1Ash = await getUserAsh(1);
+        assert.equal(u1Ash, 900);
 
         let rent = await program.provider.connection.getMinimumBalanceForRentExemption(312);
         console.log("rent: " + rent / web3.LAMPORTS_PER_SOL);
 
         // match
-        await match(program, game, u1, u1AshToken, Shape.Paper);
-        let { ashAmount: u1AshAmount2 } = await getUserData(1);
-        assert.equal(u1AshAmount2, 900);
+        await match(program, game, u2, u1AshToken, Shape.Paper);
+        let u2Ash = await getUserAsh(2);
+        assert.equal(u2Ash, 900);
 
         // reveal
-        await reveal(program, game, u0, Shape.Rock, "u1secret");
+        await reveal(program, game, u1, Shape.Rock, "u1secret");
+
+        // u2 win
+        bankAsh = await getBankAsh();
+        assert.equal(bankAsh, 24);
+        u2Ash = await getUserAsh(2);
+        assert.equal(u2Ash, 900+176);
+
 
         // let { raffle, entrants } = await createRaffle(program, admin, ashMintPubkey, Date.now() + 60000, 2, 10);
 
@@ -139,5 +153,15 @@ describe("rps basic", () => {
         let u0AshToken = await ashMintToken.getOrCreateAssociatedAccountInfo(u0.publicKey);
 
         return { user: u0, ashATA: u0AshToken.address, ashAmount: u0AshToken.amount.toNumber() };
+    }
+    
+    async function getUserAsh(index: number) {
+        let u0 = user[index];
+        let u0AshToken = await ashMintToken.getOrCreateAssociatedAccountInfo(u0.publicKey);
+        return u0AshToken.amount.toNumber();
+    }
+    async function getBankAsh() {
+        let u0AshToken = await ashMintToken.getAccountInfo(bankPubkey);
+        return u0AshToken.amount.toNumber();
     }
 });

@@ -1,8 +1,6 @@
 use std::str::FromStr;
 
 use anchor_lang::prelude::*;
-use anchor_spl::token;
-use solana_program::program::invoke;
 use solana_program::program::invoke_signed;
 use solana_program::system_instruction;
 use spl_token::instruction::AuthorityType;
@@ -117,8 +115,6 @@ pub mod rps {
                 &[],
             )?;
         } else {
-            msg!("Transfer token");
-
             transfer(
                 game.amount,
                 ctx.accounts.player_one_token_account.to_account_info(),
@@ -234,7 +230,7 @@ pub mod rps {
                 .ok_or(RpsCode::NumericalOverflow)?
                 .checked_div(100)
                 .ok_or(RpsCode::NumericalOverflow)? as u64;
-            bank_amount = fee.checked_mul(2).ok_or(RpsCode::NumericalOverflow)?;
+            bank_amount = fee;
             if winner == 1 {
                 player1_amount = player_gain
                     .checked_sub(bank_amount)
@@ -288,6 +284,7 @@ pub mod rps {
             }
         } else {
             if player1_amount > 0 {
+                msg!("Sending:{} to player1", player1_amount);
                 transfer(
                     player1_amount,
                     ctx.accounts.proceeds.to_account_info(),
@@ -298,6 +295,7 @@ pub mod rps {
                 )?;
             }
             if player2_amount > 0 {
+                msg!("Sending:{} to player2", player2_amount);
                 transfer(
                     player2_amount,
                     ctx.accounts.proceeds.to_account_info(),
@@ -308,10 +306,11 @@ pub mod rps {
                 )?;
             }
             if bank_amount > 0 {
+                msg!("Sending:{} to bank {}", bank_amount, ctx.accounts.bank.key());
                 transfer(
                     bank_amount,
                     ctx.accounts.proceeds.to_account_info(),
-                    ctx.accounts.player_two_token_account.to_account_info(),
+                    ctx.accounts.bank.to_account_info(),
                     ctx.accounts.token_program.to_account_info(),
                     ctx.accounts.game.to_account_info(),
                     signer_seeds,
