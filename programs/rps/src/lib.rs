@@ -328,54 +328,6 @@ pub mod rps {
     // nothing happen
 
     // when closing game, save stats to a light weight account
-
-    // pub fn send_back_ash<'a>(
-    //     ash_amount: u64,
-    //     program_id: &Pubkey,
-    //     pda_seed: &[u8],
-    //     bank_account: AccountInfo<'a>,
-    //     ash_account: AccountInfo<'a>,
-    //     pda: AccountInfo<'a>,
-    //     token_program: AccountInfo<'a>,
-    // ) -> ProgramResult {
-    //     let (_pda, bump_seed) = Pubkey::find_program_address(&[pda_seed], program_id);
-    //     let seeds = &[&pda_seed[..], &[bump_seed]];
-
-    //     let transfer_ix = spl_token::instruction::transfer(
-    //         &spl_token::ID,
-    //         bank_account.key,
-    //         ash_account.key,
-    //         pda.key,
-    //         &[],
-    //         ash_amount,
-    //     )?;
-    //     solana_program::program::invoke_signed(
-    //         &transfer_ix,
-    //         &[bank_account, ash_account, pda, token_program],
-    //         &[&seeds[..]],
-    //     )?;
-
-    //     Ok(())
-    // }
-
-    //
-    //
-    // Not used for now
-    // pub fn create_bet(
-    //     ctx: Context<CreateBet>,
-    //     amount: u32,
-    //     tax: u32,
-    //     mint: Option<Pubkey>,
-    // ) -> Result<()> {
-    //     let bet = &mut ctx.accounts.bet;
-    //     bet.version = 1;
-    //     bet.admin = ctx.accounts.admin.key();
-    //     bet.mint = mint;
-    //     bet.amount = amount;
-    //     bet.tax = tax;
-
-    //     Ok(())
-    // }
 }
 
 pub fn transfer<'a>(
@@ -388,18 +340,6 @@ pub fn transfer<'a>(
 ) -> Result<()> {
     assert_owned_by(&from_account, &spl_token::id())?;
     assert_owned_by(&to_account, &spl_token::id())?;
-    // token::transfer(
-    //     CpiContext::new(
-    //         token_program,
-    //         token::Transfer {
-    //             from: from_account.clone(),
-    //             to: to_account,
-    //             authority: authority,
-    //         },
-    //     ),
-    //     amount,
-    // )?;
-    //&[&seeds[..]],
 
     let transfer_ix = spl_token::instruction::transfer(
         &spl_token::ID,

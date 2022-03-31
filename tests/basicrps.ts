@@ -97,56 +97,17 @@ describe("rps basic", () => {
         assert.equal(bankAsh, 24);
         u2Ash = await getUserAsh(2);
         assert.equal(u2Ash, 900+176);
-
-
-        // let { raffle, entrants } = await createRaffle(program, admin, ashMintPubkey, Date.now() + 60000, 2, 10);
-
-        // let { mint: nftMint, ata: nftAccount } = await createNft(connection, nftCreator, admin.publicKey);
-
-        // await addPrize(program, admin, raffle, 1, nftAccount, nftMint, 0);
-
-        // // u0 buy 1
-
-        // await buyTicket(program, u0, raffle, entrants, u0AshToken, 1);
-
-        // let { ashAmount: u0AshAmountP } = await getUserData(0);
-        // assert.equal(u0AshAmountP, 1000 - 2);
-
-        // // u1 & u2 buy
-        // for (let i = 1; i < 3; i++) {
-        //     let { user: ui, ashATA: uiAshToken } = await getUserData(0);
-        //     await buyTicket(program, ui, raffle, entrants, uiAshToken, 1);
-        // }
-
-        // //only for test - terminate now
-        // await terminateRaffle(program, raffle, admin);
-
-        // // anyone can reveal
-        // await revealWinners(program, raffle);
-
-        // let winners = await getWinningTicket(program, raffle);
-        // assert.equal(winners.length, 1);
-
-        // let winner0 = winners[0];
-
-        // let all = [user[0], user[1], user[2]];
-        // let winner = all.find((u) => u.publicKey.equals(winner0.wallet));
-        // let looser = all.filter((u) => !u.publicKey.equals(winner0.wallet));
-
-        // let loggers = disableLogging();
-        // try {
-        //     await claimPrize(program, raffle, admin, nftMint, looser[0].publicKey, 0, winner0.ticket);
-        //     assert.fail("should not pass here");
-        // } catch (e) {
-        //     assert.equal(true, true);
-        // }
-        // restoreLogging(loggers);
-
-        // await claimPrize(program, raffle, admin, nftMint, winner.publicKey, 0, winner0.ticket);
-        // assert.equal(true, true);
-
     });
 
+    // Same test in SOL
+
+    // Withdraw bank
+    
+    // User 1 cancel
+    
+    // User 1 doesn't come back
+
+    // All fight combinaison
 
     async function getUserData(index: number) {
         let u0 = user[index];
