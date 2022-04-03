@@ -5,6 +5,7 @@ import * as web3 from '@solana/web3.js';
 import { SystemProgram } from '@solana/web3.js';
 import { keccak_256 } from 'js-sha3';
 import { Rps } from '../target/types/rps';
+import { ASH_MINT, getAssociatedTokenAddress, WSOL } from './accounts';
 
 
 export function expand(secret: string, shape: number) {
@@ -91,7 +92,7 @@ export async function initBank(program: Program<Rps>,
 export async function start(program: Program<Rps>,
     admin: web3.PublicKey,
     playerOne: web3.Keypair,
-    ashMint: web3.PublicKey,
+    mint: web3.PublicKey,
     playerOneAshToken: web3.PublicKey,
     amount: number,
     secret: string,
@@ -100,9 +101,14 @@ export async function start(program: Program<Rps>,
 
     let duration = 8 * 60 * 60;
     let gameId = new web3.Keypair();
-    let [game, gbump] = await getGame(gameId.publicKey);
-    let [proceeds, pbump] = await getProceeds(game);
+    let [game] = await getGame(gameId.publicKey);
+    let [proceeds] = await getProceeds(game);
     let hash = expand(secret, shape);
+
+    if(mint.toBase58() == WSOL.toBase58()) {
+        playerOneAshToken = await getAssociatedTokenAddress(playerOne.publicKey, WSOL);
+        amount = amount * web3.LAMPORTS_PER_SOL;
+    }
 
     let tx = await program.rpc.startGame(new anchor.BN(amount), hash, new anchor.BN(duration), {
         accounts: {
@@ -112,7 +118,7 @@ export async function start(program: Program<Rps>,
             playerOne: playerOne.publicKey,
             playerOneTokenAccount: playerOneAshToken,
             proceeds: proceeds,
-            proceedsMint: ashMint,
+            proceedsMint: mint,
             rent: web3.SYSVAR_RENT_PUBKEY,
             clock: web3.SYSVAR_CLOCK_PUBKEY,
             tokenProgram: TOKEN_PROGRAM_ID,
@@ -128,12 +134,17 @@ export async function start(program: Program<Rps>,
 
 export async function match(program: Program<Rps>,
     game: web3.PublicKey,
+    mint: web3.PublicKey,
     playerTwo: web3.Keypair,
     playerTwoAshToken: web3.PublicKey,
     shape: Shape,
 ) {
 
     let [proceeds] = await getProceeds(game);
+
+    if(mint.toBase58() == WSOL.toBase58()) {
+        playerTwoAshToken = await getAssociatedTokenAddress(playerTwo.publicKey, WSOL);
+    }
 
     let tx = await program.rpc.matchGame(shape, {
         accounts: {
@@ -159,7 +170,7 @@ export async function reveal(program: Program<Rps>,
 ) {
 
     let gameData = (await program.account.game.fetch(game) as unknown) as GameAccount;
-    let [config] = await getBankConfigAddress(gameData.mint);
+    let [config] = await getBankConfigAddress(gameData.mint.toBase58()==WSOL.toBase58() ? ASH_MINT : gameData.mint);
     let [proceeds] = await getProceeds(game);
     let bankConfig = (await program.account.bankConfig.fetch(config) as unknown) as BankConfig;
 
@@ -183,157 +194,3 @@ export async function reveal(program: Program<Rps>,
 
     await program.provider.connection.confirmTransaction(tx, "confirmed");
 }
-
-
-// export async function addPrize(program: Program<Draffle>,
-//     admin: web3.Keypair,
-//     raffle: web3.PublicKey,
-//     prizeAmount: number,
-//     nftAccount: web3.PublicKey,
-//     nftMint: web3.PublicKey,
-//     index: number,
-// ) {
-
-//     let [prize] = await getPrize(raffle, index);
-
-//     let tx = await program.rpc.addPrize(index, new anchor.BN(prizeAmount),
-//         {
-//             accounts: {
-//                 raffle: raffle,
-//                 creator: admin.publicKey,
-//                 from: nftAccount,
-//                 prize: prize,
-//                 prizeMint: nftMint,
-//                 systemProgram: SystemProgram.programId,
-//                 tokenProgram: TOKEN_PROGRAM_ID,
-//                 rent: web3.SYSVAR_RENT_PUBKEY
-//             },
-//             signers: [admin],
-//         });
-
-//     await program.provider.connection.confirmTransaction(tx, "confirmed");
-// }
-
-
-// export async function buyTicket(program: Program<Draffle>,
-//     buyer: web3.Keypair,
-//     raffle: web3.PublicKey,
-//     entrants: web3.PublicKey,
-//     buyerAshAccount: web3.PublicKey,
-//     count: number,
-// ) {
-
-//     let [proceeds] = await getProceeds(raffle);
-
-//     let tx = await program.rpc.buyTickets(count,
-//         {
-//             accounts: {
-//                 raffle: raffle,
-//                 entrants: entrants,
-//                 proceeds: proceeds,
-//                 buyerTokenAccount: buyerAshAccount,
-//                 buyerTransferAuthority: buyer.publicKey,
-//                 tokenProgram: TOKEN_PROGRAM_ID,
-//             },
-//             signers: [buyer],
-//         });
-
-//     await program.provider.connection.confirmTransaction(tx, "confirmed");
-// }
-
-// export async function revealWinners(program: Program<Draffle>,
-//     raffle: web3.PublicKey,
-// ) {
-//     let tx = await program.rpc.revealWinners(
-//         {
-//             accounts: {
-//                 raffle: raffle,
-//                 recentBlockhashes: web3.SYSVAR_RECENT_BLOCKHASHES_PUBKEY,
-//             },
-//             signers: [],
-//         });
-
-//     await program.provider.connection.confirmTransaction(tx, "confirmed");
-// }
-
-
-// export async function terminateRaffle(program: Program<Draffle>,
-//     raffle: web3.PublicKey,
-//     admin: web3.Keypair,
-// ) {
-//     let tx = await program.rpc.terminateRaffle(
-//         {
-//             accounts: {
-//                 raffle: raffle,
-//                 creator: admin.publicKey,
-//             },
-//             signers: [admin],
-//         });
-
-//     await program.provider.connection.confirmTransaction(tx, "confirmed");
-// }
-
-
-// export async function getWinningTicket(program: Program<Draffle>,
-//     raffle: web3.PublicKey,) {
-
-//     let raffleAccount = await program.account.raffle.fetch(raffle) as RaffleAccount;
-//     let entrantAccount = await program.account.entrants.fetch(raffleAccount.entrants) as EntrantAccount;
-
-//     let winners: { wallet: web3.PublicKey, ticket: number }[] = [];
-//     let secret = raffleAccount.randomness as number[];
-//     for (let i = 0; i < raffleAccount.totalPrizes; i++) {
-//         const rand = expand(secret, i);
-//         const windex = rand % entrantAccount.total;
-//         winners.push({
-//             wallet: entrantAccount.entrants[windex],
-//             ticket: windex,
-//         });
-//     }
-//     return winners;
-// }
-
-
-// export async function claimPrize(program: Program<Draffle>,
-//     raffle: web3.PublicKey, payer: web3.Keypair, prizeMint: web3.PublicKey, winnerWallet: web3.PublicKey, prizeIndex: number, ticketIndex: number) {
-
-//     let raffleAccount = await program.account.raffle.fetch(raffle) as RaffleAccount;
-//     let [prizeAddr] = await getPrize(raffle, prizeIndex);
-
-//     // let prizeInfo = await program.provider.connection.getParsedAccountInfo(prizeAddr);
-//     // let data = (prizeInfo.value.data as web3.ParsedAccountData);
-//     // let mint = data.parsed.info.mint as web3.PublicKey;
-
-//     let connection = program.provider.connection;
-//     let additionalTx: web3.TransactionInstruction[] = [];
-//     let signers: web3.Signer[] = [];
-//     const prizeTokenAccount = await Token.getAssociatedTokenAddress(ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, prizeMint, winnerWallet);
-//     const winnerAtaInfo = await connection.getAccountInfo(prizeTokenAccount);
-//     if (!winnerAtaInfo || winnerAtaInfo.lamports <= 0) {
-//         let tx = Token.createAssociatedTokenAccountInstruction(
-//             ASSOCIATED_TOKEN_PROGRAM_ID,
-//             TOKEN_PROGRAM_ID,
-//             prizeMint,
-//             prizeTokenAccount,
-//             winnerWallet,
-//             payer.publicKey
-//         );
-//         additionalTx.push(tx);
-//         signers.push(payer);
-//     }
-
-//     let tx = await program.rpc.claimPrize(prizeIndex, ticketIndex,
-//         {
-//             accounts: {
-//                 raffle: raffle,
-//                 entrants: raffleAccount.entrants,
-//                 prize: prizeAddr,
-//                 winnerTokenAccount: prizeTokenAccount,
-//                 tokenProgram: TOKEN_PROGRAM_ID,
-//             },
-//             signers: signers,
-//             instructions: additionalTx
-//         });
-
-//     await program.provider.connection.confirmTransaction(tx, "confirmed");
-// }

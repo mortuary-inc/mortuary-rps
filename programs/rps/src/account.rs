@@ -100,6 +100,7 @@ pub struct RevealGame<'info> {
     )]
     pub proceeds: Account<'info, TokenAccount>,
     #[account(
+        mut,
         constraint = config.bank == *bank.key,
         constraint = config.admin == game.admin,)]
     pub config: Account<'info, BankConfig>,

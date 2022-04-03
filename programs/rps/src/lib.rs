@@ -110,7 +110,7 @@ pub mod rps {
             transfer_native(
                 game.amount,
                 ctx.accounts.player_one.to_account_info(),
-                ctx.accounts.proceeds.to_account_info(),
+                ctx.accounts.game.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
                 &[],
             )?;
@@ -148,7 +148,7 @@ pub mod rps {
             transfer_native(
                 game.amount,
                 ctx.accounts.player_two.to_account_info(),
-                ctx.accounts.proceeds.to_account_info(),
+                ctx.accounts.game.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
                 &[],
             )?;
@@ -166,11 +166,7 @@ pub mod rps {
         Ok(())
     }
 
-    pub fn reveal_game(
-        ctx: Context<RevealGame>,
-        shape: u8,
-        secret: [u8; 32],
-    ) -> Result<()> {
+    pub fn reveal_game(ctx: Context<RevealGame>, shape: u8, secret: [u8; 32]) -> Result<()> {
         let game = &mut ctx.accounts.game;
 
         if game.stage != Stage::Match {
@@ -255,32 +251,39 @@ pub mod rps {
         let signer_seeds = &[&seeds[..]];
 
         if is_native {
+            let pay = &ctx.accounts.game.to_account_info();
+            let snapshot: u64 = pay.lamports();
+            **pay.lamports.borrow_mut() = snapshot
+                .checked_sub(player1_amount)
+                .ok_or(RpsCode::NumericalOverflow)?
+                .checked_sub(player2_amount)
+                .ok_or(RpsCode::NumericalOverflow)?
+                .checked_sub(bank_amount)
+                .ok_or(RpsCode::NumericalOverflow)?;
+            msg!("Proceed lamport: {}", snapshot);
             if player1_amount > 0 {
-                transfer_native(
-                    player1_amount,
-                    ctx.accounts.proceeds.to_account_info(),
-                    ctx.accounts.player_one.to_account_info(),
-                    ctx.accounts.system_program.to_account_info(),
-                    signer_seeds,
-                )?;
+                msg!("Sending:{} to player1", player1_amount);
+                let p = ctx.accounts.player_one.to_account_info();
+                **p.lamports.borrow_mut() = p
+                    .lamports()
+                    .checked_add(player1_amount)
+                    .ok_or(RpsCode::NumericalOverflow)?;
             }
             if player2_amount > 0 {
-                transfer_native(
-                    player2_amount,
-                    ctx.accounts.proceeds.to_account_info(),
-                    ctx.accounts.player_two.to_account_info(),
-                    ctx.accounts.system_program.to_account_info(),
-                    signer_seeds,
-                )?;
+                msg!("Sending:{} to player2", player2_amount);
+                let p = ctx.accounts.player_two.to_account_info();
+                **p.lamports.borrow_mut() = p
+                    .lamports()
+                    .checked_add(player2_amount)
+                    .ok_or(RpsCode::NumericalOverflow)?;
             }
             if bank_amount > 0 {
-                transfer_native(
-                    bank_amount,
-                    ctx.accounts.proceeds.to_account_info(),
-                    ctx.accounts.bank.to_account_info(),
-                    ctx.accounts.system_program.to_account_info(),
-                    signer_seeds,
-                )?;
+                msg!("Sending:{} to bank", bank_amount);
+                let p = ctx.accounts.config.to_account_info();
+                **p.lamports.borrow_mut() = p
+                    .lamports()
+                    .checked_add(bank_amount)
+                    .ok_or(RpsCode::NumericalOverflow)?;
             }
         } else {
             if player1_amount > 0 {
@@ -306,7 +309,11 @@ pub mod rps {
                 )?;
             }
             if bank_amount > 0 {
-                msg!("Sending:{} to bank {}", bank_amount, ctx.accounts.bank.key());
+                msg!(
+                    "Sending:{} to bank {}",
+                    bank_amount,
+                    ctx.accounts.bank.key()
+                );
                 transfer(
                     bank_amount,
                     ctx.accounts.proceeds.to_account_info(),

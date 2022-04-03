@@ -5,9 +5,9 @@ import * as web3 from '@solana/web3.js';
 import { SystemProgram } from '@solana/web3.js';
 import * as assert from 'assert';
 import { Rps } from '../target/types/rps';
-import { start, Shape, match, reveal, initBank } from './rpsHelper';
+import { ASH_MINT, getBalance, setAshMint, WSOL } from './accounts';
+import { start, Shape, match, reveal, initBank, getBankConfigAddress } from './rpsHelper';
 import { airDrop, createAsh, createNft, disableLogging, restoreLogging, test_admin_key, transfer } from './utils';
-
 
 describe("rps basic", () => {
 
@@ -22,6 +22,7 @@ describe("rps basic", () => {
     let ashMintToken: Token;
     let ashMintPubkey: web3.PublicKey;
     let bankPubkey: web3.PublicKey;
+    let configPubkey: web3.PublicKey;
 
     let user: web3.Keypair[] = [];
 
@@ -45,6 +46,7 @@ describe("rps basic", () => {
 
         ashMintToken = await createAsh(connection, ashCreator, 1_500_000);
         ashMintPubkey = ashMintToken.publicKey;
+        setAshMint(ashMintToken.publicKey);
 
         await transfer(connection, ashMintPubkey, ashCreator, admin.publicKey, 100_000);
         let ashCreatorAshAccountInfo = await ashMintToken.getOrCreateAssociatedAccountInfo(ashCreator.publicKey);
@@ -66,18 +68,18 @@ describe("rps basic", () => {
         await Promise.all(promises);
     });
 
-    it('Create', async () => {
+    it('Create and match (ash)', async () => {
 
-        let { user: u1, ashATA: u0AshToken, ashAmount: u0AshAmount } = await getUserData(1);
-        assert.equal(u0AshAmount, 1000);
-        let { user: u2, ashATA: u1AshToken, ashAmount: u1AshAmount } = await getUserData(2);
+        let { user: u1, ashATA: u1AshToken, ashAmount: u1AshAmount } = await getUserData(1);
         assert.equal(u1AshAmount, 1000);
+        let { user: u2, ashATA: u2AshToken, ashAmount: u2AshAmount } = await getUserData(2);
+        assert.equal(u2AshAmount, 1000);
 
         let bankAsh = await getBankAsh();
         assert.equal(bankAsh, 0);
 
         // start
-        let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u0AshToken, 100, "u1secret", Shape.Rock);
+        let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u1AshToken, 100, "u1secret", Shape.Rock);
         let u1Ash = await getUserAsh(1);
         assert.equal(u1Ash, 900);
 
@@ -85,7 +87,7 @@ describe("rps basic", () => {
         console.log("rent: " + rent / web3.LAMPORTS_PER_SOL);
 
         // match
-        await match(program, game, u2, u1AshToken, Shape.Paper);
+        await match(program, game, ashMintPubkey, u2, u2AshToken, Shape.Paper);
         let u2Ash = await getUserAsh(2);
         assert.equal(u2Ash, 900);
 
@@ -96,15 +98,51 @@ describe("rps basic", () => {
         bankAsh = await getBankAsh();
         assert.equal(bankAsh, 24);
         u2Ash = await getUserAsh(2);
-        assert.equal(u2Ash, 900+176);
+        assert.equal(u2Ash, 900 + 176);
     });
 
-    // Same test in SOL
+    it('Create and match (sol)', async () => {
+
+        let { user: u1 } = await getUserData(1);
+        let u1Balance = await getBalance(connection, u1.publicKey);
+        console.log("u1 balance: " + u1Balance);
+        let { user: u2 } = await getUserData(2);
+        let u2Balance = await getBalance(connection, u2.publicKey);
+        console.log("u2 balance: " + u2Balance);
+
+        let bankSol = await getConfigBalance();
+        console.log("Config balance: " + bankSol);
+        assert.ok(bankSol < 0.1);
+
+        // start
+        let { game } = await start(program, admin.publicKey, u1, WSOL, null, 0.5, "u1secret", Shape.Rock);
+        let u1Balance2 = await getBalance(connection, u1.publicKey);
+        console.log("u1 balance after: " + u1Balance2 + " / " + (u1Balance - u1Balance2));
+        assert.ok(u1Balance - u1Balance2 < 0.51);
+
+        // match
+        await match(program, game, WSOL, u2, null, Shape.Paper);
+        let u2Balance2 = await getBalance(connection, u2.publicKey);
+        console.log("u2 balance after: " + u2Balance2 + " / " + (u2Balance - u2Balance2));
+        assert.ok(u2Balance - u2Balance2 < 0.51);
+
+        // reveal
+        await reveal(program, game, u1, Shape.Rock, "u1secret");
+
+        // u2 win
+        let bankSol2 = await getConfigBalance();
+        console.log("Config balance after: " + bankSol2 + " / " + (bankSol - bankSol2));
+        assert.ok(bankSol2 - bankSol >= 0.12);
+
+        let u2Balance3 = await getBalance(connection, u2.publicKey);
+        console.log("u2 balance after: " + u2Balance3 + " / " + (u2Balance3 - u2Balance2));
+        assert.ok(u2Balance3 - u2Balance2 >= 0.87);
+    });
 
     // Withdraw bank
-    
+
     // User 1 cancel
-    
+
     // User 1 doesn't come back
 
     // All fight combinaison
@@ -112,10 +150,9 @@ describe("rps basic", () => {
     async function getUserData(index: number) {
         let u0 = user[index];
         let u0AshToken = await ashMintToken.getOrCreateAssociatedAccountInfo(u0.publicKey);
-
         return { user: u0, ashATA: u0AshToken.address, ashAmount: u0AshToken.amount.toNumber() };
     }
-    
+
     async function getUserAsh(index: number) {
         let u0 = user[index];
         let u0AshToken = await ashMintToken.getOrCreateAssociatedAccountInfo(u0.publicKey);
@@ -124,5 +161,10 @@ describe("rps basic", () => {
     async function getBankAsh() {
         let u0AshToken = await ashMintToken.getAccountInfo(bankPubkey);
         return u0AshToken.amount.toNumber();
+    }
+    async function getConfigBalance() {
+        let [config] = await getBankConfigAddress(ASH_MINT);
+        let b = await getBalance(connection, config);
+        return b;
     }
 });
