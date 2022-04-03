@@ -111,23 +111,33 @@ pub struct RevealGame<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct TerminateGame<'info> {
+    #[account(mut /*, close = config */)]
+    pub game: Account<'info, Game>,
+    #[account(mut, constraint = *player_two.key == game.player_two)]
+    pub player_two: UncheckedAccount<'info>,
+    #[account(mut, constraint = *player_two_token_account.key == game.player_two_token_account)]
+    pub player_two_token_account: UncheckedAccount<'info>,
 
-// #[account]
-// pub struct Bet {
-//     pub version: u8,
-//     pub admin: Pubkey,
-//     pub mint: Option<Pubkey>,
-//     pub amount: u32,
-//     pub tax: u32,
-// }
-// impl Bet {
-//     pub const LEN: usize = 32 + 
-//       1 + // version
-//      32 + // admin
-//      32 + // mint
-//       4 + // amount
-//       4;  // tax
-// }
+    #[account(
+        mut,
+        seeds = [game.key().as_ref(), b"proceeds"],
+        bump,
+    )]
+    pub proceeds: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        constraint = config.bank == *bank.key,
+        constraint = config.admin == game.admin,)]
+    pub config: Account<'info, BankConfig>,
+    #[account(mut)]
+    pub bank: UncheckedAccount<'info>,
+    pub clock: Sysvar<'info, Clock>,
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
+
 
 #[account]
 pub struct BankConfig {
@@ -190,9 +200,7 @@ pub enum Stage {
     Start = 0,
     Match = 1,
     Reveal = 2,
-    Claim = 3,
-    Complete = 4,
-    Cancel = 5,
+    Terminate = 3,
 }
 
 // pub fn shape_as_u8(s: &Shape) -> u8 {

@@ -5,7 +5,8 @@ import * as web3 from '@solana/web3.js';
 import { SystemProgram } from '@solana/web3.js';
 import { keccak_256 } from 'js-sha3';
 import { Rps } from '../target/types/rps';
-import { ASH_MINT, getAssociatedTokenAddress, WSOL } from './accounts';
+import { ASH_MINT, WSOL } from './accounts';
+import { getATA } from './utils';
 
 
 export function expand(secret: string, shape: number) {
@@ -97,16 +98,16 @@ export async function start(program: Program<Rps>,
     amount: number,
     secret: string,
     shape: Shape,
+    duration: number,
 ) {
 
-    let duration = 8 * 60 * 60;
     let gameId = new web3.Keypair();
     let [game] = await getGame(gameId.publicKey);
     let [proceeds] = await getProceeds(game);
     let hash = expand(secret, shape);
 
     if(mint.toBase58() == WSOL.toBase58()) {
-        playerOneAshToken = await getAssociatedTokenAddress(playerOne.publicKey, WSOL);
+        playerOneAshToken = await getATA(playerOne.publicKey, WSOL);
         amount = amount * web3.LAMPORTS_PER_SOL;
     }
 
@@ -143,7 +144,7 @@ export async function match(program: Program<Rps>,
     let [proceeds] = await getProceeds(game);
 
     if(mint.toBase58() == WSOL.toBase58()) {
-        playerTwoAshToken = await getAssociatedTokenAddress(playerTwo.publicKey, WSOL);
+        playerTwoAshToken = await getATA(playerTwo.publicKey, WSOL);
     }
 
     let tx = await program.rpc.matchGame(shape, {
@@ -190,6 +191,34 @@ export async function reveal(program: Program<Rps>,
             systemProgram: SystemProgram.programId,
         },
         signers: [playerOne],
+    });
+
+    await program.provider.connection.confirmTransaction(tx, "confirmed");
+}
+
+// if player doesn't come back after xx seconds, anyone can close the game (p2 win)
+export async function terminate(program: Program<Rps>,
+    game: web3.PublicKey,
+) {
+
+    let gameData = (await program.account.game.fetch(game) as unknown) as GameAccount;
+    let [config] = await getBankConfigAddress(gameData.mint.toBase58()==WSOL.toBase58() ? ASH_MINT : gameData.mint);
+    let [proceeds] = await getProceeds(game);
+    let bankConfig = (await program.account.bankConfig.fetch(config) as unknown) as BankConfig;
+
+    let tx = await program.rpc.terminateGame( {
+        accounts: {
+            game: game,
+            playerTwo: gameData.playerTwo,
+            playerTwoTokenAccount: gameData.playerTwoTokenAccount,
+            proceeds: proceeds,
+            bank: bankConfig.bank,
+            config: config,
+            clock: web3.SYSVAR_CLOCK_PUBKEY,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+        },
+        signers: [],
     });
 
     await program.provider.connection.confirmTransaction(tx, "confirmed");

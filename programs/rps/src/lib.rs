@@ -9,7 +9,6 @@ use solana_program::keccak;
 
 use crate::account::*;
 use crate::errors::*;
-
 mod account;
 mod errors;
 
@@ -135,12 +134,16 @@ pub mod rps {
             return Err(error!(RpsCode::GameNotStart));
         }
 
+        let clock = &ctx.accounts.clock;
+        if game.last_update + game.duration < clock.unix_timestamp {
+            return Err(error!(RpsCode::GameExpired));
+        }
+
         game.player_two = ctx.accounts.player_two.key();
         game.player_two_revealed = Some(shape_from_u8(shape));
         game.player_two_token_account = ctx.accounts.player_two_token_account.key();
         game.stage = Stage::Match;
 
-        let clock = &ctx.accounts.clock;
         game.last_update = clock.unix_timestamp;
 
         if game.mint == Pubkey::from_str(WSOL).unwrap() {
@@ -330,6 +333,104 @@ pub mod rps {
 
     // after x duration, anyone can stop the game
     // player 2 win
+    pub fn terminate_game(ctx: Context<TerminateGame>) -> Result<()> {
+        let game = &mut ctx.accounts.game;
+
+        if game.stage != Stage::Match {
+            return Err(error!(RpsCode::GameNotMatch));
+        }
+
+        let clock = &ctx.accounts.clock;
+        if game.last_update + game.duration > clock.unix_timestamp {
+            return Err(error!(RpsCode::GameLive));
+        }
+
+        game.stage = Stage::Terminate;
+        game.last_update = clock.unix_timestamp;
+
+        // distribute to player2 + commission
+        let player_gain = game
+            .amount
+            .checked_mul(2)
+            .ok_or(RpsCode::NumericalOverflow)?;
+        let taxpct = ctx.accounts.config.tax.into();
+        let fee = player_gain
+            .checked_mul(taxpct)
+            .ok_or(RpsCode::NumericalOverflow)?
+            .checked_div(100)
+            .ok_or(RpsCode::NumericalOverflow)? as u64;
+        let bank_amount = fee;
+        let player2_amount = player_gain
+            .checked_sub(bank_amount)
+            .ok_or(RpsCode::NumericalOverflow)?;
+
+        let is_native = if game.mint.to_string() == WSOL {
+            true
+        } else {
+            false
+        };
+
+        let game_key = game.game_id;
+        let (_, nonce) =
+            Pubkey::find_program_address(&[b"game".as_ref(), game_key.as_ref()], ctx.program_id);
+        let seeds = &[b"game".as_ref(), game_key.as_ref(), &[nonce]];
+        let signer_seeds = &[&seeds[..]];
+
+        if is_native {
+            let pay = &ctx.accounts.game.to_account_info();
+            let snapshot: u64 = pay.lamports();
+            **pay.lamports.borrow_mut() = snapshot
+                .checked_sub(player2_amount)
+                .ok_or(RpsCode::NumericalOverflow)?
+                .checked_sub(bank_amount)
+                .ok_or(RpsCode::NumericalOverflow)?;
+            if player2_amount > 0 {
+                msg!("Sending:{} to player2", player2_amount);
+                let p = ctx.accounts.player_two.to_account_info();
+                **p.lamports.borrow_mut() = p
+                    .lamports()
+                    .checked_add(player2_amount)
+                    .ok_or(RpsCode::NumericalOverflow)?;
+            }
+            if bank_amount > 0 {
+                msg!("Sending:{} to bank", bank_amount);
+                let p = ctx.accounts.config.to_account_info();
+                **p.lamports.borrow_mut() = p
+                    .lamports()
+                    .checked_add(bank_amount)
+                    .ok_or(RpsCode::NumericalOverflow)?;
+            }
+        } else {
+            if player2_amount > 0 {
+                msg!("Sending:{} to player2", player2_amount);
+                transfer(
+                    player2_amount,
+                    ctx.accounts.proceeds.to_account_info(),
+                    ctx.accounts.player_two_token_account.to_account_info(),
+                    ctx.accounts.token_program.to_account_info(),
+                    ctx.accounts.game.to_account_info(),
+                    signer_seeds,
+                )?;
+            }
+            if bank_amount > 0 {
+                msg!(
+                    "Sending:{} to bank {}",
+                    bank_amount,
+                    ctx.accounts.bank.key()
+                );
+                transfer(
+                    bank_amount,
+                    ctx.accounts.proceeds.to_account_info(),
+                    ctx.accounts.bank.to_account_info(),
+                    ctx.accounts.token_program.to_account_info(),
+                    ctx.accounts.game.to_account_info(),
+                    signer_seeds,
+                )?;
+            }
+        }
+
+        Ok(())
+    }
 
     // player 1 can cancel if no one join
     // nothing happen

@@ -5,9 +5,9 @@ import * as web3 from '@solana/web3.js';
 import { SystemProgram } from '@solana/web3.js';
 import * as assert from 'assert';
 import { Rps } from '../target/types/rps';
-import { ASH_MINT, getBalance, setAshMint, WSOL } from './accounts';
-import { start, Shape, match, reveal, initBank, getBankConfigAddress } from './rpsHelper';
-import { airDrop, createAsh, createNft, disableLogging, restoreLogging, test_admin_key, transfer } from './utils';
+import { ASH_MINT, setAshMint, WSOL } from './accounts';
+import { start, Shape, match, reveal, initBank, getBankConfigAddress, terminate } from './rpsHelper';
+import { airDrop, createAsh, createNft, disableLogging, getBalance, restoreLogging, test_admin_key, transfer } from './utils';
 
 describe("rps basic", () => {
 
@@ -79,7 +79,7 @@ describe("rps basic", () => {
         assert.equal(bankAsh, 0);
 
         // start
-        let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u1AshToken, 100, "u1secret", Shape.Rock);
+        let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u1AshToken, 100, "u1secret", Shape.Rock, 8 * 60 * 60);
         let u1Ash = await getUserAsh(1);
         assert.equal(u1Ash, 900);
 
@@ -115,7 +115,7 @@ describe("rps basic", () => {
         assert.ok(bankSol < 0.1);
 
         // start
-        let { game } = await start(program, admin.publicKey, u1, WSOL, null, 0.5, "u1secret", Shape.Rock);
+        let { game } = await start(program, admin.publicKey, u1, WSOL, null, 0.5, "u1secret", Shape.Rock, 8 * 60 * 60);
         let u1Balance2 = await getBalance(connection, u1.publicKey);
         console.log("u1 balance after: " + u1Balance2 + " / " + (u1Balance - u1Balance2));
         assert.ok(u1Balance - u1Balance2 < 0.51);
@@ -139,11 +139,47 @@ describe("rps basic", () => {
         assert.ok(u2Balance3 - u2Balance2 >= 0.87);
     });
 
+    // User 1 doesn't come back
+    it('User 1 drop', async () => {
+
+        let { user: u1, ashATA: u1AshToken } = await getUserData(1);
+        let { user: u2, ashATA: u2AshToken, ashAmount: u2AshAmount } = await getUserData(2);
+        let bankAsh = await getBankAsh();
+
+        // start a game that expire after 3s
+        let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u1AshToken, 100, "u1secret", Shape.Rock, 3);
+
+        // match
+        await match(program, game, ashMintPubkey, u2, u2AshToken, Shape.Scissor);
+
+        let loggers = disableLogging();
+        try {
+            await terminate(program, game);
+            assert.fail("should not pass here");
+        } catch (e) {
+            console.log(e.message);
+            assert.equal(true, true);
+        }
+        restoreLogging(loggers);
+
+        console.log("sleeping 4s");
+        await sleep(5000);
+
+        // reveal
+        await terminate(program, game);
+
+        // u2 win
+        let bankAsh2 = await getBankAsh();
+        let u2AshAmount2 = await getUserAsh(2);
+        assert.equal((bankAsh2 - bankAsh), 24);
+        assert.equal((u2AshAmount2 - u2AshAmount), 76);
+    });
+
+
     // Withdraw bank
 
     // User 1 cancel
 
-    // User 1 doesn't come back
 
     // All fight combinaison
 
@@ -166,5 +202,10 @@ describe("rps basic", () => {
         let [config] = await getBankConfigAddress(ASH_MINT);
         let b = await getBalance(connection, config);
         return b;
+    }
+    function sleep(ms) {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
     }
 });

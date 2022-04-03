@@ -25,6 +25,10 @@ pub enum RpsCode {
     IncorrectOwner,
     #[msg("Numerical Overflow")]
     NumericalOverflow,
+    #[msg("Game is expired")]
+    GameExpired,
+    #[msg("Game is live")]
+    GameLive,
 }
 
 pub fn assert_owned_by(account: &AccountInfo, owner: &Pubkey) -> Result<()> {

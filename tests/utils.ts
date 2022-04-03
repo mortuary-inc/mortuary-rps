@@ -85,5 +85,11 @@ export function restoreLogging(fns: Array<Function>) {
 }
 
 export const test_admin_key = web3.Keypair.fromSecretKey(
-    Uint8Array.from([157,23,85,183,189,94,185,169,230,161,24,115,10,14,166,254,143,209,66,16,55,118,116,170,153,173,250,195,15,75,209,89,39,4,12,31,181,223,236,78,167,236,89,242,25,201,60,173,161,138,98,135,85,239,13,47,140,54,88,134,166,200,167,167])
-  );
+    Uint8Array.from([157, 23, 85, 183, 189, 94, 185, 169, 230, 161, 24, 115, 10, 14, 166, 254, 143, 209, 66, 16, 55, 118, 116, 170, 153, 173, 250, 195, 15, 75, 209, 89, 39, 4, 12, 31, 181, 223, 236, 78, 167, 236, 89, 242, 25, 201, 60, 173, 161, 138, 98, 135, 85, 239, 13, 47, 140, 54, 88, 134, 166, 200, 167, 167])
+);
+
+
+export async function getBalance(connection: web3.Connection, wallet: web3.PublicKey) {
+    let balance = await connection.getBalance(wallet, "confirmed");
+    return balance / web3.LAMPORTS_PER_SOL;
+}
