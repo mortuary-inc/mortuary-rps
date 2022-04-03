@@ -5,21 +5,22 @@ use std::mem::size_of;
 #[derive(Accounts)]
 #[instruction(bump: u8)]
 pub struct InitBank<'info> {
-  #[account(
-      init,
-      payer = admin,
-      seeds = [bank_mint.key().as_ref(), b"bank"],
-      bump,
-      space = 8 + size_of::<BankConfig>())]
-  pub bank_config: Account<'info, BankConfig>,
-  #[account(signer, mut)]
-  pub admin: AccountInfo<'info>,
-  #[account(mut)]
-  pub bank: Account<'info, TokenAccount>,
-  #[account(constraint = bank.mint  == bank_mint.key())]
-  pub bank_mint: Account<'info, Mint>,
-  pub system_program: Program<'info, System>,
-  pub token_program: Program<'info, Token>,
+    #[account(
+        init,
+        payer = admin,
+        seeds = [bank_mint.key().as_ref(), b"bank"],
+        bump,
+        space = 8 + size_of::<BankConfig>())]
+        pub bank_config: Account<'info, BankConfig>,
+    /// CHECK: the signer hard code check
+    #[account(signer, mut)]
+    pub admin: AccountInfo<'info>,
+    #[account(mut)]
+    pub bank: Account<'info, TokenAccount>,
+    #[account(constraint = bank.mint  == bank_mint.key())]
+    pub bank_mint: Account<'info, Mint>,
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
 }
 
 
@@ -33,6 +34,7 @@ pub struct StartGame<'info> {
         space = Game::LEN
     )]
     pub game: Account<'info, Game>,
+    /// CHECK: just an id
     pub game_id: UncheckedAccount<'info>,
     #[account(mut)]
     pub player_one: Signer<'info>,
@@ -48,7 +50,9 @@ pub struct StartGame<'info> {
     pub proceeds: Account<'info, TokenAccount>,
     pub proceeds_mint: Account<'info, Mint>,
 
+    /// CHECK: admin (hard coded check)
     pub admin: AccountInfo<'info>,
+    /// CHECK: check in code (TODO)
     #[account(mut)]
     pub player_one_token_account: UncheckedAccount<'info>,
 
@@ -71,6 +75,8 @@ pub struct MatchGame<'info> {
         bump,
     )]
     pub proceeds: Account<'info, TokenAccount>,
+
+    /// CHECK: checked in code (TODO)
     #[account(mut)]
     pub player_two_token_account: UncheckedAccount<'info>,
 
@@ -86,10 +92,13 @@ pub struct RevealGame<'info> {
     pub game: Account<'info, Game>,
     #[account(mut, constraint = *player_one.key == game.player_one)]
     pub player_one: Signer<'info>,
+    /// CHECK: by constraint 
     #[account(mut, constraint = *player_two.key == game.player_two)]
     pub player_two: UncheckedAccount<'info>,
+    /// CHECK: by constraint 
     #[account(mut, constraint = *player_one_token_account.key == game.player_one_token_account)]
     pub player_one_token_account: UncheckedAccount<'info>,
+    /// CHECK: by constraint 
     #[account(mut, constraint = *player_two_token_account.key == game.player_two_token_account)]
     pub player_two_token_account: UncheckedAccount<'info>,
 
@@ -104,6 +113,7 @@ pub struct RevealGame<'info> {
         constraint = config.bank == *bank.key,
         constraint = config.admin == game.admin,)]
     pub config: Account<'info, BankConfig>,
+    /// CHECK: by constraint 
     #[account(mut)]
     pub bank: UncheckedAccount<'info>,
     pub clock: Sysvar<'info, Clock>,
@@ -115,8 +125,10 @@ pub struct RevealGame<'info> {
 pub struct TerminateGame<'info> {
     #[account(mut /*, close = config */)]
     pub game: Account<'info, Game>,
+    /// CHECK: by constraint 
     #[account(mut, constraint = *player_two.key == game.player_two)]
     pub player_two: UncheckedAccount<'info>,
+    /// CHECK: by constraint 
     #[account(mut, constraint = *player_two_token_account.key == game.player_two_token_account)]
     pub player_two_token_account: UncheckedAccount<'info>,
 
@@ -131,6 +143,7 @@ pub struct TerminateGame<'info> {
         constraint = config.bank == *bank.key,
         constraint = config.admin == game.admin,)]
     pub config: Account<'info, BankConfig>,
+    /// CHECK: by constraint 
     #[account(mut)]
     pub bank: UncheckedAccount<'info>,
     pub clock: Sysvar<'info, Clock>,

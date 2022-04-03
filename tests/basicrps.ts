@@ -157,8 +157,7 @@ describe("rps basic", () => {
             await terminate(program, game);
             assert.fail("should not pass here");
         } catch (e) {
-            console.log(e.message);
-            assert.equal(true, true);
+            assert.equal(e.message, "6011: Game is live");
         }
         restoreLogging(loggers);
 
