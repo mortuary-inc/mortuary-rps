@@ -11,7 +11,7 @@ pub struct InitBank<'info> {
         seeds = [bank_mint.key().as_ref(), b"bank"],
         bump,
         space = 8 + size_of::<BankConfig>())]
-        pub bank_config: Account<'info, BankConfig>,
+    pub bank_config: Account<'info, BankConfig>,
     /// CHECK: the signer hard code check
     #[account(signer, mut)]
     pub admin: AccountInfo<'info>,
@@ -152,6 +152,33 @@ pub struct TerminateGame<'info> {
 }
 
 
+// #[account(
+//     init,
+//     payer = admin,
+//     seeds = [bank_mint.key().as_ref(), b"bank"],
+//     bump,
+//     space = 8 + size_of::<BankConfig>())]
+// pub bank_config: Account<'info, BankConfig>,
+
+#[derive(Accounts)]
+pub struct Withdraw<'info> {
+    #[account(mut, 
+        seeds = [bank_config.mint.as_ref(), b"bank"],
+        bump = bank_config.bump,
+        constraint = bank_config.admin == admin.key()
+    )]
+    pub bank_config: Account<'info, BankConfig>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    #[account(mut, constraint = bank.mint == bank_config.mint)]
+    pub bank: Account<'info, TokenAccount>,
+    #[account(mut, constraint = receptor.mint == bank_config.mint, constraint = receptor.owner == admin.key())]
+    pub receptor: Account<'info, TokenAccount>,
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
+
+
 #[account]
 pub struct BankConfig {
     pub version: u8,
@@ -160,6 +187,7 @@ pub struct BankConfig {
     pub mint: Pubkey,
     pub tax: u8,
     pub tax_draw: u8,
+    pub bump: u8,
 }
 
 

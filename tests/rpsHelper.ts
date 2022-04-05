@@ -22,7 +22,6 @@ export function getSecretSmall(secret: string) {
     const hasher = keccak_256.create();
     hasher.update(secret);
     let h = hasher.digest();
-    console.log("hash:" + hasher.hex());
     return h;
 }
 
@@ -90,6 +89,29 @@ export async function initBank(program: Program<Rps>,
     return { bank: bank }
 }
 
+export async function withdraw(program: Program<Rps>,
+    admin: web3.Keypair,
+    bank: web3.PublicKey,
+    ashMint: web3.PublicKey) {
+
+    const [bankConfigPubkey] = await getBankConfigAddress(ashMint);
+    const adminAshATA = await getATA(admin.publicKey, ashMint);
+
+    let tx = await program.rpc.withdraw({
+        accounts: {
+            admin: admin.publicKey,
+            bank: bank,
+            bankConfig: bankConfigPubkey,
+            receptor: adminAshATA,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+        },
+        signers: [admin]
+    });
+
+    await program.provider.connection.confirmTransaction(tx, "confirmed");
+}
+
 export async function start(program: Program<Rps>,
     admin: web3.PublicKey,
     playerOne: web3.Keypair,
@@ -106,7 +128,7 @@ export async function start(program: Program<Rps>,
     let [proceeds] = await getProceeds(game);
     let hash = expand(secret, shape);
 
-    if(mint.toBase58() == WSOL.toBase58()) {
+    if (mint.toBase58() == WSOL.toBase58()) {
         playerOneAshToken = await getATA(playerOne.publicKey, WSOL);
         amount = amount * web3.LAMPORTS_PER_SOL;
     }
@@ -143,7 +165,7 @@ export async function match(program: Program<Rps>,
 
     let [proceeds] = await getProceeds(game);
 
-    if(mint.toBase58() == WSOL.toBase58()) {
+    if (mint.toBase58() == WSOL.toBase58()) {
         playerTwoAshToken = await getATA(playerTwo.publicKey, WSOL);
     }
 
@@ -171,7 +193,7 @@ export async function reveal(program: Program<Rps>,
 ) {
 
     let gameData = (await program.account.game.fetch(game) as unknown) as GameAccount;
-    let [config] = await getBankConfigAddress(gameData.mint.toBase58()==WSOL.toBase58() ? ASH_MINT : gameData.mint);
+    let [config] = await getBankConfigAddress(gameData.mint.toBase58() == WSOL.toBase58() ? ASH_MINT : gameData.mint);
     let [proceeds] = await getProceeds(game);
     let bankConfig = (await program.account.bankConfig.fetch(config) as unknown) as BankConfig;
 
@@ -202,11 +224,11 @@ export async function terminate(program: Program<Rps>,
 ) {
 
     let gameData = (await program.account.game.fetch(game) as unknown) as GameAccount;
-    let [config] = await getBankConfigAddress(gameData.mint.toBase58()==WSOL.toBase58() ? ASH_MINT : gameData.mint);
+    let [config] = await getBankConfigAddress(gameData.mint.toBase58() == WSOL.toBase58() ? ASH_MINT : gameData.mint);
     let [proceeds] = await getProceeds(game);
     let bankConfig = (await program.account.bankConfig.fetch(config) as unknown) as BankConfig;
 
-    let tx = await program.rpc.terminateGame( {
+    let tx = await program.rpc.terminateGame({
         accounts: {
             game: game,
             playerTwo: gameData.playerTwo,

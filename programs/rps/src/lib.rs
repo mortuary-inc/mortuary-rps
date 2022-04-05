@@ -32,7 +32,7 @@ pub mod rps {
 
     use super::*;
 
-    pub fn init_bank(ctx: Context<InitBank>, _bump: u8) -> Result<()> {
+    pub fn init_bank(ctx: Context<InitBank>, bump: u8) -> Result<()> {
         // only me can create this account
         if ctx.accounts.admin.key().to_string() != constants::ADMIN {
             return Err(error!(RpsCode::InvalidAdmin));
@@ -42,8 +42,9 @@ pub mod rps {
         ctx.accounts.bank_config.admin = ctx.accounts.admin.key();
         ctx.accounts.bank_config.bank = ctx.accounts.bank.key();
         ctx.accounts.bank_config.mint = ctx.accounts.bank_mint.key();
-        ctx.accounts.bank_config.tax = 12;
+        ctx.accounts.bank_config.tax = 5;
         ctx.accounts.bank_config.tax_draw = 0;
+        ctx.accounts.bank_config.bump = bump;
 
         let (pda, _bump_seed) = Pubkey::find_program_address(
             &[ctx.accounts.bank_mint.key().as_ref(), PDA_SEED],
@@ -428,6 +429,61 @@ pub mod rps {
                 )?;
             }
         }
+
+        Ok(())
+    }
+
+    pub fn withdraw(ctx: Context<Withdraw>) -> Result<()> {
+        let bank = &ctx.accounts.bank;
+        let amount = bank.amount;
+
+        let (_, bump_seed) =
+            Pubkey::find_program_address(&[bank.mint.as_ref(), PDA_SEED], ctx.program_id);
+        let seeds = &[bank.mint.as_ref(), PDA_SEED, &[bump_seed]];
+        // let transfer_ix = spl_token::instruction::transfer(
+        //     &spl_token::ID,
+        //     ctx.accounts.bank.to_account_info().key,
+        //     ctx.accounts.receptor.to_account_info().key,
+        //     ctx.accounts.bank_config.to_account_info().key,
+        //     &[],
+        //     amount,
+        // )?;
+        // solana_program::program::invoke_signed(
+        //     &transfer_ix,
+        //     &[
+        //         ctx.accounts.bank.to_account_info(),
+        //         ctx.accounts.receptor.to_account_info(),
+        //         ctx.accounts.bank_config.to_account_info(),
+        //         ctx.accounts.token_program.to_account_info(),
+        //     ],
+        //     &[&seeds[..]],
+        // )?;
+        msg!("Sending:{} ASH", &amount);
+        transfer(
+            amount,
+            ctx.accounts.bank.to_account_info(),
+            ctx.accounts.receptor.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.bank_config.to_account_info(),
+            &[&seeds[..]],
+        )?;
+
+        let pay = &ctx.accounts.bank_config.to_account_info();
+        let snapshot: u64 = pay.lamports();
+        let sols = snapshot - 100_000_000;
+        msg!("Snapshot:{} lamports", snapshot);
+        msg!("Sending:{} lamports", sols);
+        **pay.lamports.borrow_mut() = snapshot
+        .checked_sub(sols)
+        .ok_or(RpsCode::NumericalOverflow)?;
+        let p = ctx.accounts.admin.to_account_info();
+        **p.lamports.borrow_mut() = p
+        .lamports()
+        .checked_add(sols)
+        .ok_or(RpsCode::NumericalOverflow)
+        ?;
+
+        msg!("After:{} lamports", &ctx.accounts.bank_config.to_account_info().lamports());
 
         Ok(())
     }
