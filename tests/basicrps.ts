@@ -199,16 +199,54 @@ describe("rps basic", () => {
         let bankSol2 = await getConfigBalance();
         let bankAsh2 = await getBankAsh();
         let adminSol2 = await getBalance(connection, admin.publicKey);
-        console.log("SOL diff:" + (bankSol2-bankSol) + " new: " + bankSol2);
-        console.log("ASH diff:" + (bankAsh2-bankAsh))
-        console.log("Admin SOL diff:" + (adminSol2-adminSol) + " new: " + adminSol2);
-        assert.ok(bankAsh2-bankAsh <= 60);
-        assert.ok(adminSol2-adminSol >= 0.1);
+        console.log("SOL diff:" + (bankSol2 - bankSol) + " new: " + bankSol2);
+        console.log("ASH diff:" + (bankAsh2 - bankAsh))
+        console.log("Admin SOL diff:" + (adminSol2 - adminSol) + " new: " + adminSol2);
+        assert.ok(bankAsh2 - bankAsh <= 60);
+        assert.ok(adminSol2 - adminSol >= 0.1);
     });
 
-    // User 1 cancel
+    // Check all combinaison
+    it('All combinaison', async () => {
+        let res = await runGame(1, Shape.Paper, 2, Shape.Paper);
+        assert.equal(res, 0);
+        res = await runGame(1, Shape.Paper, 2, Shape.Rock);
+        assert.equal(res, 1);
+        res = await runGame(1, Shape.Paper, 2, Shape.Scissor);
+        assert.equal(res, 2);
+        res = await runGame(1, Shape.Rock, 2, Shape.Paper);
+        assert.equal(res, 2);
+        res = await runGame(1, Shape.Rock, 2, Shape.Rock);
+        assert.equal(res, 0);
+        res = await runGame(1, Shape.Rock, 2, Shape.Scissor);
+        assert.equal(res, 1);
+        res = await runGame(1, Shape.Scissor, 2, Shape.Paper);
+        assert.equal(res, 1);
+        res = await runGame(1, Shape.Scissor, 2, Shape.Rock);
+        assert.equal(res, 2);
+        res = await runGame(1, Shape.Scissor, 2, Shape.Scissor);
+        assert.equal(res, 0);
+    });
 
-    // All fight combinaison
+    // test wrong reveal
+    
+    // save a history account with minimal data
+
+    async function runGame(u1Index: number, u1Shape: Shape, u2Index: number, u2Shape: Shape) {
+        let { user: u1, ashATA: u1AshToken } = await getUserData(u1Index);
+        let { user: u2, ashATA: u2AshToken } = await getUserData(u2Index);
+
+        let u1AshAmount = await getUserAsh(u1Index);
+        let secret = "secret" + Math.round(Math.random() * 100);
+        let { game: game2 } = await start(program, admin.publicKey, u1, ASH_MINT, u1AshToken, 50, secret, u1Shape, 8 * 60 * 60);
+        await match(program, game2, ASH_MINT, u2, u2AshToken, u2Shape);
+        await reveal(program, game2, u1, u1Shape, secret);
+        let u1AshAmount2 = await getUserAsh(u1Index);
+        let diff = u1AshAmount2 - u1AshAmount;
+        if (diff == 0) return 0;
+        if (diff > 0) return 1;
+        return 2;
+    }
 
     async function getUserData(index: number) {
         let u0 = user[index];
