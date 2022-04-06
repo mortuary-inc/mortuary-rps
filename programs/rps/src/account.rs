@@ -89,7 +89,7 @@ pub struct MatchGame<'info> {
 #[derive(Accounts)]
 pub struct RevealGame<'info> {
     #[account(mut, close = player_one)]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut, constraint = *player_one.key == game.player_one)]
     pub player_one: Signer<'info>,
     /// CHECK: by constraint 
@@ -107,15 +107,22 @@ pub struct RevealGame<'info> {
         seeds = [game.key().as_ref(), b"proceeds"],
         bump,
     )]
-    pub proceeds: Account<'info, TokenAccount>,
+    pub proceeds: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         constraint = config.bank == *bank.key,
         constraint = config.admin == game.admin,)]
-    pub config: Account<'info, BankConfig>,
+    pub config: Box<Account<'info, BankConfig>>,
     /// CHECK: by constraint 
     #[account(mut)]
     pub bank: UncheckedAccount<'info>,
+    #[account(
+        init,
+        seeds = [b"history".as_ref(), game.key().as_ref()],
+        bump,
+        payer = player_one,
+        space = 8 + size_of::<GameHistory>())]
+    pub history: Box<Account<'info, GameHistory>>,
     pub clock: Sysvar<'info, Clock>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -123,6 +130,8 @@ pub struct RevealGame<'info> {
 
 #[derive(Accounts)]
 pub struct TerminateGame<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
     #[account(mut /*, close = config */)]
     pub game: Account<'info, Game>,
     /// CHECK: by constraint 
@@ -137,15 +146,23 @@ pub struct TerminateGame<'info> {
         seeds = [game.key().as_ref(), b"proceeds"],
         bump,
     )]
-    pub proceeds: Account<'info, TokenAccount>,
+    pub proceeds: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         constraint = config.bank == *bank.key,
         constraint = config.admin == game.admin,)]
-    pub config: Account<'info, BankConfig>,
+    pub config: Box<Account<'info, BankConfig>>,
     /// CHECK: by constraint 
     #[account(mut)]
     pub bank: UncheckedAccount<'info>,
+    #[account(
+        init,
+        seeds = [b"history".as_ref(), game.key().as_ref()],
+        bump,
+        payer = payer,
+        space = 8 + size_of::<GameHistory>()
+    )]
+    pub history: Box<Account<'info, GameHistory>>,
     pub clock: Sysvar<'info, Clock>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -208,6 +225,16 @@ pub struct Game {
     pub stage: Stage,
     pub last_update: i64,
     pub duration: i64,
+}
+
+#[account]
+pub struct GameHistory {
+    pub player_one: Pubkey,
+    pub player_two: Pubkey,
+    pub timestamp: u32, // in minutes
+    pub winner: u8,
+    pub mint: u8,
+    pub bid: u64,
 }
 
 impl Game {

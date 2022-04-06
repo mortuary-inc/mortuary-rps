@@ -6,7 +6,7 @@ import { SystemProgram } from '@solana/web3.js';
 import * as assert from 'assert';
 import { Rps } from '../target/types/rps';
 import { ASH_MINT, setAshMint, WSOL } from './accounts';
-import { start, Shape, match, reveal, initBank, getBankConfigAddress, terminate, withdraw } from './rpsHelper';
+import { start, Shape, match, reveal, initBank, getBankConfigAddress, terminate, withdraw, loadHistory } from './rpsHelper';
 import { airDrop, createAsh, createNft, disableLogging, getBalance, restoreLogging, test_admin_key, transfer } from './utils';
 
 describe("rps basic", () => {
@@ -144,6 +144,7 @@ describe("rps basic", () => {
 
         let { user: u1, ashATA: u1AshToken } = await getUserData(1);
         let { user: u2, ashATA: u2AshToken, ashAmount: u2AshAmount } = await getUserData(2);
+        let { user: u3 } = await getUserData(3);
         let bankAsh = await getBankAsh();
 
         // start a game that expire after 3s
@@ -154,7 +155,7 @@ describe("rps basic", () => {
 
         let loggers = disableLogging();
         try {
-            await terminate(program, game);
+            await terminate(program, game, u3);
             assert.fail("should not pass here");
         } catch (e) {
             assert.equal(e.message, "6011: Game is live");
@@ -165,7 +166,7 @@ describe("rps basic", () => {
         await sleep(5000);
 
         // reveal
-        await terminate(program, game);
+        await terminate(program, game, u3);
 
         // u2 win
         let bankAsh2 = await getBankAsh();
@@ -247,6 +248,20 @@ describe("rps basic", () => {
             assert.equal(e.message, "6000: Your combinaison (secret+weapon) doesn't match what you played when you created the game.");
         }
         restoreLogging(loggers);
+    });
+    
+    it('Search history', async () => {
+
+        let { user: u9, ashATA: u1AshToken } = await getUserData(9);
+
+        await Promise.all([
+            runGame(9, Shape.Paper, 2, Shape.Rock),
+            runGame(2, Shape.Paper, 9, Shape.Rock),
+        ]);
+
+        let history = await loadHistory(program, u9.publicKey);
+        console.log("history: " + history.length);
+        assert.equal(history.length, 2);
     });
     
     // save a history account with minimal data

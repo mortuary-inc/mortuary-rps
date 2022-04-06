@@ -27,6 +27,7 @@ export function getSecretSmall(secret: string) {
 
 export type GameAccount = IdlAccounts<Rps>['game'];
 export type BankConfig = IdlAccounts<Rps>['bankConfig'];
+export type GameHistory = IdlAccounts<Rps>['gameHistory'];
 
 export const RPS_PROGRAM_ID = new web3.PublicKey(
     "mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk"
@@ -34,6 +35,10 @@ export const RPS_PROGRAM_ID = new web3.PublicKey(
 
 export async function getGame(gameId: web3.PublicKey) {
     let p = await web3.PublicKey.findProgramAddress([Buffer.from("game"), gameId.toBuffer()], RPS_PROGRAM_ID)
+    return p;
+}
+export async function getHistory(game: web3.PublicKey) {
+    let p = await web3.PublicKey.findProgramAddress([Buffer.from("history"), game.toBuffer()], RPS_PROGRAM_ID)
     return p;
 }
 export async function getProceeds(game: web3.PublicKey) {
@@ -196,6 +201,7 @@ export async function reveal(program: Program<Rps>,
     let [config] = await getBankConfigAddress(gameData.mint.toBase58() == WSOL.toBase58() ? ASH_MINT : gameData.mint);
     let [proceeds] = await getProceeds(game);
     let bankConfig = (await program.account.bankConfig.fetch(config) as unknown) as BankConfig;
+    let [history] = await getHistory(game);
 
     let h = getSecretSmall(secret);
     let tx = await program.rpc.revealGame(shape, h, {
@@ -208,6 +214,7 @@ export async function reveal(program: Program<Rps>,
             proceeds: proceeds,
             bank: bankConfig.bank,
             config: config,
+            history: history,
             clock: web3.SYSVAR_CLOCK_PUBKEY,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
@@ -220,28 +227,56 @@ export async function reveal(program: Program<Rps>,
 
 // if player doesn't come back after xx seconds, anyone can close the game (p2 win)
 export async function terminate(program: Program<Rps>,
-    game: web3.PublicKey,
+    game: web3.PublicKey, payer: web3.Keypair,
 ) {
 
     let gameData = (await program.account.game.fetch(game) as unknown) as GameAccount;
     let [config] = await getBankConfigAddress(gameData.mint.toBase58() == WSOL.toBase58() ? ASH_MINT : gameData.mint);
     let [proceeds] = await getProceeds(game);
     let bankConfig = (await program.account.bankConfig.fetch(config) as unknown) as BankConfig;
+    let [history] = await getHistory(game);
 
     let tx = await program.rpc.terminateGame({
         accounts: {
+            payer: payer.publicKey,
             game: game,
             playerTwo: gameData.playerTwo,
             playerTwoTokenAccount: gameData.playerTwoTokenAccount,
             proceeds: proceeds,
             bank: bankConfig.bank,
             config: config,
+            history: history,
             clock: web3.SYSVAR_CLOCK_PUBKEY,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
         },
-        signers: [],
+        signers: [payer],
     });
 
     await program.provider.connection.confirmTransaction(tx, "confirmed");
+}
+
+
+export async function loadHistory(program: Program<Rps>,
+    player: web3.PublicKey,
+) {
+    let filter1: web3.MemcmpFilter = {
+        memcmp: {
+            offset: 8,
+            bytes: player.toBase58(),
+        }
+    }
+    let filter2: web3.MemcmpFilter = {
+        memcmp: {
+            offset: 40,
+            bytes: player.toBase58(),
+        }
+    }
+    let [r1, r2] = await Promise.all([
+         program.account.gameHistory.all([filter1]),
+         program.account.gameHistory.all([filter2]),
+    ]);
+    let res1 = r1.map((pa) => pa.account as GameHistory);
+    let res2 = r2.map((pa) => pa.account as GameHistory);
+    return res1.concat(res2);
 }

@@ -264,9 +264,7 @@ pub mod rps {
                 .ok_or(RpsCode::NumericalOverflow)?
                 .checked_sub(bank_amount)
                 .ok_or(RpsCode::NumericalOverflow)?;
-            msg!("Proceed lamport: {}", snapshot);
             if player1_amount > 0 {
-                msg!("Sending:{} to player1", player1_amount);
                 let p = ctx.accounts.player_one.to_account_info();
                 **p.lamports.borrow_mut() = p
                     .lamports()
@@ -274,7 +272,6 @@ pub mod rps {
                     .ok_or(RpsCode::NumericalOverflow)?;
             }
             if player2_amount > 0 {
-                msg!("Sending:{} to player2", player2_amount);
                 let p = ctx.accounts.player_two.to_account_info();
                 **p.lamports.borrow_mut() = p
                     .lamports()
@@ -282,7 +279,6 @@ pub mod rps {
                     .ok_or(RpsCode::NumericalOverflow)?;
             }
             if bank_amount > 0 {
-                msg!("Sending:{} to bank", bank_amount);
                 let p = ctx.accounts.config.to_account_info();
                 **p.lamports.borrow_mut() = p
                     .lamports()
@@ -291,7 +287,6 @@ pub mod rps {
             }
         } else {
             if player1_amount > 0 {
-                msg!("Sending:{} to player1", player1_amount);
                 transfer(
                     player1_amount,
                     ctx.accounts.proceeds.to_account_info(),
@@ -302,7 +297,6 @@ pub mod rps {
                 )?;
             }
             if player2_amount > 0 {
-                msg!("Sending:{} to player2", player2_amount);
                 transfer(
                     player2_amount,
                     ctx.accounts.proceeds.to_account_info(),
@@ -313,11 +307,6 @@ pub mod rps {
                 )?;
             }
             if bank_amount > 0 {
-                msg!(
-                    "Sending:{} to bank {}",
-                    bank_amount,
-                    ctx.accounts.bank.key()
-                );
                 transfer(
                     bank_amount,
                     ctx.accounts.proceeds.to_account_info(),
@@ -328,6 +317,20 @@ pub mod rps {
                 )?;
             }
         }
+
+        // save history
+        let history = &mut ctx.accounts.history;
+        history.player_one = ctx.accounts.player_one.key();
+        history.player_two = ctx.accounts.player_two.key();
+        history.bid = ctx.accounts.game.amount;
+        history.mint = match is_native {
+            true => 0,
+            _ => 1,
+        };
+        history.timestamp = clock.unix_timestamp
+            .checked_div(60)
+            .expect("Unable to convert current time") as u32;
+        history.winner = winner;
 
         Ok(())
     }
@@ -386,7 +389,6 @@ pub mod rps {
                 .checked_sub(bank_amount)
                 .ok_or(RpsCode::NumericalOverflow)?;
             if player2_amount > 0 {
-                msg!("Sending:{} to player2", player2_amount);
                 let p = ctx.accounts.player_two.to_account_info();
                 **p.lamports.borrow_mut() = p
                     .lamports()
@@ -394,7 +396,6 @@ pub mod rps {
                     .ok_or(RpsCode::NumericalOverflow)?;
             }
             if bank_amount > 0 {
-                msg!("Sending:{} to bank", bank_amount);
                 let p = ctx.accounts.config.to_account_info();
                 **p.lamports.borrow_mut() = p
                     .lamports()
@@ -403,7 +404,6 @@ pub mod rps {
             }
         } else {
             if player2_amount > 0 {
-                msg!("Sending:{} to player2", player2_amount);
                 transfer(
                     player2_amount,
                     ctx.accounts.proceeds.to_account_info(),
@@ -414,11 +414,6 @@ pub mod rps {
                 )?;
             }
             if bank_amount > 0 {
-                msg!(
-                    "Sending:{} to bank {}",
-                    bank_amount,
-                    ctx.accounts.bank.key()
-                );
                 transfer(
                     bank_amount,
                     ctx.accounts.proceeds.to_account_info(),
@@ -430,6 +425,20 @@ pub mod rps {
             }
         }
 
+        // save history
+        let history = &mut ctx.accounts.history;
+        history.player_one = ctx.accounts.game.player_one;
+        history.player_two = ctx.accounts.game.player_two;
+        history.bid = ctx.accounts.game.amount;
+        history.mint = match is_native {
+            true => 0,
+            _ => 1,
+        };
+        history.timestamp = clock.unix_timestamp
+            .checked_div(60)
+            .expect("Unable to convert current time") as u32;
+        history.winner = 2;
+
         Ok(())
     }
 
@@ -440,25 +449,7 @@ pub mod rps {
         let (_, bump_seed) =
             Pubkey::find_program_address(&[bank.mint.as_ref(), PDA_SEED], ctx.program_id);
         let seeds = &[bank.mint.as_ref(), PDA_SEED, &[bump_seed]];
-        // let transfer_ix = spl_token::instruction::transfer(
-        //     &spl_token::ID,
-        //     ctx.accounts.bank.to_account_info().key,
-        //     ctx.accounts.receptor.to_account_info().key,
-        //     ctx.accounts.bank_config.to_account_info().key,
-        //     &[],
-        //     amount,
-        // )?;
-        // solana_program::program::invoke_signed(
-        //     &transfer_ix,
-        //     &[
-        //         ctx.accounts.bank.to_account_info(),
-        //         ctx.accounts.receptor.to_account_info(),
-        //         ctx.accounts.bank_config.to_account_info(),
-        //         ctx.accounts.token_program.to_account_info(),
-        //     ],
-        //     &[&seeds[..]],
-        // )?;
-        msg!("Sending:{} ASH", &amount);
+
         transfer(
             amount,
             ctx.accounts.bank.to_account_info(),
@@ -471,19 +462,14 @@ pub mod rps {
         let pay = &ctx.accounts.bank_config.to_account_info();
         let snapshot: u64 = pay.lamports();
         let sols = snapshot - 100_000_000;
-        msg!("Snapshot:{} lamports", snapshot);
-        msg!("Sending:{} lamports", sols);
         **pay.lamports.borrow_mut() = snapshot
-        .checked_sub(sols)
-        .ok_or(RpsCode::NumericalOverflow)?;
+            .checked_sub(sols)
+            .ok_or(RpsCode::NumericalOverflow)?;
         let p = ctx.accounts.admin.to_account_info();
         **p.lamports.borrow_mut() = p
-        .lamports()
-        .checked_add(sols)
-        .ok_or(RpsCode::NumericalOverflow)
-        ?;
-
-        msg!("After:{} lamports", &ctx.accounts.bank_config.to_account_info().lamports());
+            .lamports()
+            .checked_add(sols)
+            .ok_or(RpsCode::NumericalOverflow)?;
 
         Ok(())
     }
