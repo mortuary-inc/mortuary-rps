@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 #[error_code]
 pub enum RpsCode {
     #[msg(
-        "Your combinaison (secret+move) doesn't match what you played when you started the game."
+        "Your combinaison (secret+weapon) doesn't match what you played when you created the game."
     )]
     HashDontMatch,
     #[msg("Invalid admin account provided.")]

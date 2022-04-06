@@ -228,7 +228,26 @@ describe("rps basic", () => {
         assert.equal(res, 0);
     });
 
-    // test wrong reveal
+    
+    it('Wrong reveal', async () => {
+
+        let { user: u1, ashATA: u1AshToken } = await getUserData(1);
+        let { user: u2, ashATA: u2AshToken } = await getUserData(2);
+
+        // start
+        let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u1AshToken, 20, "asecret", Shape.Paper, 8 * 60 * 60);
+        // match
+        await match(program, game, ashMintPubkey, u2, u2AshToken, Shape.Scissor);
+        
+        let loggers = disableLogging();
+        try {
+            // reveal
+            await reveal(program, game, u1, Shape.Rock, "badsecret");
+        } catch (e) {
+            assert.equal(e.message, "6000: Your combinaison (secret+weapon) doesn't match what you played when you created the game.");
+        }
+        restoreLogging(loggers);
+    });
     
     // save a history account with minimal data
 
