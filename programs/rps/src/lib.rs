@@ -82,8 +82,6 @@ pub mod rps {
             return Err(error!(RpsCode::InvalidAdmin));
         }
 
-        msg!("Start game");
-
         let game = &mut ctx.accounts.game;
         game.version = 1;
         game.game_id = ctx.accounts.game_id.key();
@@ -103,8 +101,6 @@ pub mod rps {
         let clock = &ctx.accounts.clock;
         game.last_update = clock.unix_timestamp;
 
-        msg!("Ready to transfer");
-
         if game.mint == Pubkey::from_str(WSOL).unwrap() {
             // native
             transfer_native(
@@ -115,6 +111,8 @@ pub mod rps {
                 &[],
             )?;
         } else {
+            assert_owned_by(&ctx.accounts.player_one_token_account, &spl_token::id())?;
+
             transfer(
                 game.amount,
                 ctx.accounts.player_one_token_account.to_account_info(),
@@ -157,6 +155,8 @@ pub mod rps {
                 &[],
             )?;
         } else {
+            assert_owned_by(&ctx.accounts.player_two_token_account, &spl_token::id())?;
+
             transfer(
                 game.amount,
                 ctx.accounts.player_two_token_account.to_account_info(),
@@ -327,7 +327,8 @@ pub mod rps {
             true => 0,
             _ => 1,
         };
-        history.timestamp = clock.unix_timestamp
+        history.timestamp = clock
+            .unix_timestamp
             .checked_div(60)
             .expect("Unable to convert current time") as u32;
         history.winner = winner;
@@ -381,27 +382,7 @@ pub mod rps {
         let signer_seeds = &[&seeds[..]];
 
         if is_native {
-            let pay = &ctx.accounts.game.to_account_info();
-            let snapshot: u64 = pay.lamports();
-            **pay.lamports.borrow_mut() = snapshot
-                .checked_sub(player2_amount)
-                .ok_or(RpsCode::NumericalOverflow)?
-                .checked_sub(bank_amount)
-                .ok_or(RpsCode::NumericalOverflow)?;
-            if player2_amount > 0 {
-                let p = ctx.accounts.player_two.to_account_info();
-                **p.lamports.borrow_mut() = p
-                    .lamports()
-                    .checked_add(player2_amount)
-                    .ok_or(RpsCode::NumericalOverflow)?;
-            }
-            if bank_amount > 0 {
-                let p = ctx.accounts.config.to_account_info();
-                **p.lamports.borrow_mut() = p
-                    .lamports()
-                    .checked_add(bank_amount)
-                    .ok_or(RpsCode::NumericalOverflow)?;
-            }
+            // recover by closing game account after
         } else {
             if player2_amount > 0 {
                 transfer(
@@ -425,6 +406,29 @@ pub mod rps {
             }
         }
 
+        // Close game account + recover SOL if native
+        let pay = &ctx.accounts.game.to_account_info();
+        let snapshot: u64 = pay.lamports();
+        **pay.lamports.borrow_mut() = snapshot
+            .checked_sub(player2_amount)
+            .ok_or(RpsCode::NumericalOverflow)?
+            .checked_sub(bank_amount)
+            .ok_or(RpsCode::NumericalOverflow)?;
+        if player2_amount > 0 {
+            let p = ctx.accounts.player_two.to_account_info();
+            **p.lamports.borrow_mut() = p
+                .lamports()
+                .checked_add(player2_amount)
+                .ok_or(RpsCode::NumericalOverflow)?;
+        }
+        if bank_amount > 0 {
+            let p = ctx.accounts.config.to_account_info();
+            **p.lamports.borrow_mut() = p
+                .lamports()
+                .checked_add(bank_amount)
+                .ok_or(RpsCode::NumericalOverflow)?;
+        }
+
         // save history
         let history = &mut ctx.accounts.history;
         history.player_one = ctx.accounts.game.player_one;
@@ -434,10 +438,65 @@ pub mod rps {
             true => 0,
             _ => 1,
         };
-        history.timestamp = clock.unix_timestamp
+        history.timestamp = clock
+            .unix_timestamp
             .checked_div(60)
             .expect("Unable to convert current time") as u32;
         history.winner = 2;
+
+        Ok(())
+    }
+
+    // if game expired player one can cancel it
+    pub fn recover(ctx: Context<RecoverGame>) -> Result<()> {
+        let game = &mut ctx.accounts.game;
+
+        if game.stage != Stage::Start {
+            return Err(error!(RpsCode::GameNotStart));
+        }
+        let clock = &ctx.accounts.clock;
+        if game.last_update + game.duration > clock.unix_timestamp {
+            return Err(error!(RpsCode::GameLive));
+        }
+
+        game.stage = Stage::Terminate;
+        game.last_update = clock.unix_timestamp;
+
+        // player1 (or admin) recover
+        let is_native = if game.mint.to_string() == WSOL {
+            true
+        } else {
+            false
+        };
+
+        let game_key = game.game_id;
+        let (_, nonce) =
+            Pubkey::find_program_address(&[b"game".as_ref(), game_key.as_ref()], ctx.program_id);
+        let seeds = &[b"game".as_ref(), game_key.as_ref(), &[nonce]];
+        let signer_seeds = &[&seeds[..]];
+
+        if is_native {
+            // recover by close action
+        } else {
+            transfer(
+                game.amount,
+                ctx.accounts.proceeds.to_account_info(),
+                ctx.accounts.payer_token_account.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.game.to_account_info(),
+                signer_seeds,
+            )?;
+        }
+
+        // close game (+ recover SOL inside)
+        let pay = &ctx.accounts.game.to_account_info();
+        let snapshot: u64 = pay.lamports();
+        **pay.lamports.borrow_mut() = 0;
+        let p = ctx.accounts.payer.to_account_info();
+        **p.lamports.borrow_mut() = p
+            .lamports()
+            .checked_add(snapshot)
+            .ok_or(RpsCode::NumericalOverflow)?;
 
         Ok(())
     }

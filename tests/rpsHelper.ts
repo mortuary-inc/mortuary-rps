@@ -225,6 +225,32 @@ export async function reveal(program: Program<Rps>,
     await program.provider.connection.confirmTransaction(tx, "confirmed");
 }
 
+// if game as expired, player 1 can come and close it to recover his token
+export async function recover(program: Program<Rps>,
+    game: web3.PublicKey, payer: web3.Keypair, payerTokenAccount: web3.PublicKey,
+) {
+
+    let gameData = (await program.account.game.fetch(game) as unknown) as GameAccount;
+    let [config] = await getBankConfigAddress(gameData.mint.toBase58() == WSOL.toBase58() ? ASH_MINT : gameData.mint);
+    let [proceeds] = await getProceeds(game);
+
+    let tx = await program.rpc.recover({
+        accounts: {
+            payer: payer.publicKey,
+            game: game,
+            payerTokenAccount: payerTokenAccount,
+            proceeds: proceeds,
+            config: config,
+            clock: web3.SYSVAR_CLOCK_PUBKEY,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+        },
+        signers: [payer],
+    });
+
+    await program.provider.connection.confirmTransaction(tx, "confirmed");
+}
+
 // if player doesn't come back after xx seconds, anyone can close the game (p2 win)
 export async function terminate(program: Program<Rps>,
     game: web3.PublicKey, payer: web3.Keypair,

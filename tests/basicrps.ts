@@ -6,7 +6,7 @@ import { SystemProgram } from '@solana/web3.js';
 import * as assert from 'assert';
 import { Rps } from '../target/types/rps';
 import { ASH_MINT, setAshMint, WSOL } from './accounts';
-import { start, Shape, match, reveal, initBank, getBankConfigAddress, terminate, withdraw, loadHistory } from './rpsHelper';
+import { start, Shape, match, reveal, initBank, getBankConfigAddress, terminate, withdraw, loadHistory, recover } from './rpsHelper';
 import { airDrop, createAsh, createNft, disableLogging, getBalance, restoreLogging, test_admin_key, transfer } from './utils';
 
 describe("rps basic", () => {
@@ -229,7 +229,7 @@ describe("rps basic", () => {
         assert.equal(res, 0);
     });
 
-    
+
     it('Wrong reveal', async () => {
 
         let { user: u1, ashATA: u1AshToken } = await getUserData(1);
@@ -239,7 +239,7 @@ describe("rps basic", () => {
         let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u1AshToken, 20, "asecret", Shape.Paper, 8 * 60 * 60);
         // match
         await match(program, game, ashMintPubkey, u2, u2AshToken, Shape.Scissor);
-        
+
         let loggers = disableLogging();
         try {
             // reveal
@@ -249,22 +249,69 @@ describe("rps basic", () => {
         }
         restoreLogging(loggers);
     });
-    
+
     it('Search history', async () => {
 
-        let { user: u9, ashATA: u1AshToken } = await getUserData(9);
+        let { user: u9, ashATA: u9AshToken } = await getUserData(9);
+        let { user: u3, ashATA: u3AshToken } = await getUserData(3);
+        let { user: u4 } = await getUserData(4);
 
         await Promise.all([
             runGame(9, Shape.Paper, 2, Shape.Rock),
             runGame(2, Shape.Paper, 9, Shape.Rock),
         ]);
 
+        let { game } = await start(program, admin.publicKey, u3, ashMintPubkey, u3AshToken, 10, "chut", Shape.Scissor, 1);
+        await match(program, game, ashMintPubkey, u9, u9AshToken, Shape.Rock);
+        await sleep(1000);
+        await terminate(program, game, u4);
+
         let history = await loadHistory(program, u9.publicKey);
-        console.log("history: " + history.length);
-        assert.equal(history.length, 2);
+        assert.equal(history.length, 3);
     });
-    
-    // save a history account with minimal data
+
+
+    // User 1 doesn't come back
+    it('Game expired', async () => {
+
+        let { user: u1, ashATA: u1AshToken, ashAmount: u1AshAmount } = await getUserData(1);
+        let { user: u2, ashATA: u2AshToken } = await getUserData(2);
+
+        // start a game that expire after 3s
+        let { game } = await start(program, admin.publicKey, u1, ashMintPubkey, u1AshToken, 100, "u1secret", Shape.Rock, 3);
+
+        // try cancel before expired
+        let loggers = disableLogging();
+        try {
+            await recover(program, game, u1, u1AshToken);
+            assert.fail("should not pass here");
+        } catch (e) {
+            assert.equal(e.message, "6011: Game is live");
+        }
+        restoreLogging(loggers);
+
+        let u1AshAmount2 = await getUserAsh(1);
+        assert.equal((u1AshAmount2 - u1AshAmount), -100);
+
+        await sleep(4000);
+
+        // match
+        loggers = disableLogging();
+        try {
+            await match(program, game, ashMintPubkey, u2, u2AshToken, Shape.Scissor);
+            assert.fail("should not pass here");
+        } catch (e) {
+            assert.equal(e.message, "6010: Game is expired");
+        }
+        restoreLogging(loggers);
+
+        // Now can close
+        await recover(program, game, u1, u1AshToken);
+
+        // u2 win
+        let u1AshAmount3 = await getUserAsh(1);
+        assert.equal(u1AshAmount3, u1AshAmount);
+    });
 
     async function runGame(u1Index: number, u1Shape: Shape, u2Index: number, u2Shape: Shape) {
         let { user: u1, ashATA: u1AshToken } = await getUserData(u1Index);

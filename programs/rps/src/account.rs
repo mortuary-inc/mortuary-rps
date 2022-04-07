@@ -132,7 +132,7 @@ pub struct RevealGame<'info> {
 pub struct TerminateGame<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut /*, close = config */)]
+    #[account(mut)] // close inside the contract
     pub game: Account<'info, Game>,
     /// CHECK: by constraint 
     #[account(mut, constraint = *player_two.key == game.player_two)]
@@ -168,14 +168,32 @@ pub struct TerminateGame<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct RecoverGame<'info> {
+    #[account(mut,
+        constraint = payer.key() == game.player_one || payer.key() == game.admin
+    )]
+    pub payer: Signer<'info>,
+    #[account(mut)] // close inside the contract
+    pub game: Account<'info, Game>,
+    /// CHECK: insde contract
+    #[account(mut)]
+    pub payer_token_account: UncheckedAccount<'info>,
+    #[account(
+        mut,
+        seeds = [game.key().as_ref(), b"proceeds"],
+        bump,
+    )]
+    pub proceeds: Box<Account<'info, TokenAccount>>,
+    #[account(
+        mut,
+        constraint = config.admin == game.admin,)]
+    pub config: Box<Account<'info, BankConfig>>,
+    pub clock: Sysvar<'info, Clock>,
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
 
-// #[account(
-//     init,
-//     payer = admin,
-//     seeds = [bank_mint.key().as_ref(), b"bank"],
-//     bump,
-//     space = 8 + size_of::<BankConfig>())]
-// pub bank_config: Account<'info, BankConfig>,
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
