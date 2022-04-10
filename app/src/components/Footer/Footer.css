@@ -1,0 +1,3 @@
+.footer-module svg path {
+  fill: theme('colors.primus-orange');
+}

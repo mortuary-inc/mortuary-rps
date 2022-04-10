@@ -1,0 +1,39 @@
+.primus-wallet-btn-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.wallet-adapter-button.primus-wallet-btn {
+  font-family: 'ShareTech', Helvetica, Arial, sans-serif;
+  color: white;
+  background-color: #969696;
+  border-radius: 3px;
+  font-size: 24px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  font-weight: 400;
+  height: 100%;
+  line-height: 2rem;
+}
+
+@media only screen and (min-width: 768px) {
+  .primus-wallet-btn-wrapper {
+    display: inline-block;
+  }
+  .wallet-adapter-button.primus-wallet-btn {
+    width: auto;
+  }
+}
+
+.burn-btn,
+.disconnect-btn {
+  text-align: center;
+}
+
+.wallet-adapter-button-start-icon {
+  float: left;
+}
+
+.wallet-adapter-button {
+  height: auto;
+}
