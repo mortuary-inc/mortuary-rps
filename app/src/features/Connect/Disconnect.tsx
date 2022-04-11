@@ -15,7 +15,7 @@ const Disconnect = () => {
   return !base58 ? (
     <></>
   ) : (
-    <Button onClick={() => handleDisconnect} variant="secondary">
+    <Button onClick={handleDisconnect} variant="secondary" className="w-40">
       DISCONNECT
     </Button>
   );

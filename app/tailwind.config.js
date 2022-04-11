@@ -24,6 +24,7 @@ const colorTheme = {
   'item-title': '#B8B8B8',
   'primus-orange': '#FF812B',
   'primus-grey': '#D2D2D2',
+  'primus-dark-grey': '#969696',
 };
 
 module.exports = {
