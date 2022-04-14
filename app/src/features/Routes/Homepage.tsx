@@ -3,11 +3,16 @@ import { useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import GamesList from '../../components/GamesList';
-import { ADMIN, ASH_MINT, SOLANA_RPC_HOST, WSOL } from '../../web3/accounts';
+import { ASH_MINT, SOLANA_RPC_HOST, WSOL } from '../../web3/accounts';
 import { Tab } from '@headlessui/react';
-import { GameAccount, getATA, loadRpsProgram, Shape, start } from '../../web3/rpsHelper';
+import { fake_wallet, GameAccount, loadRpsProgram } from '../../web3/rpsHelper';
 import Connect from '../Connect/Connect';
 import Disconnect from '../Connect/Disconnect';
+
+import toast from 'react-hot-toast';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { Notification } from '../Notification/Notification';
 
 const Homepage = () => {
   const { publicKey } = useWallet();
@@ -20,26 +25,26 @@ const Homepage = () => {
     let connection = new web3.Connection(SOLANA_RPC_HOST);
 
     const historyLoader = async () => {
-      if (wallet && publicKey) {
-        let program = await loadRpsProgram(connection, wallet);
+      let program = await loadRpsProgram(connection, fake_wallet);
+
+      try {
+        toast.custom(<Notification message={`Fetching ongoing games...`} variant="info" />);
         let rpsList =
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
-        const playerOneAshToken = await getATA(publicKey, ASH_MINT);
-
-        // await start(
-        //   program,
-        //   ADMIN,
-        //   publicKey,
-        //   WSOL,
-        //   playerOneAshToken,
-        //   0.01,
-        //   'secret',
-        //   Shape.Rock,
-        //   3600000
-        // );
-        setGamesList(rpsList);
-        setFilteredList(rpsList);
+        const startedOnlyGames = rpsList.filter((rps) =>
+          Object.keys(rps.account.stage).find((stage) => stage === 'start')
+        );
+        setGamesList(startedOnlyGames);
+        setFilteredList(startedOnlyGames);
+        if (rpsList.length === 0) {
+          toast.error('No games found');
+        }
+        toast.custom(
+          <Notification message={`${rpsList.length} ongoing games found`} variant="success" />
+        );
+      } catch (error) {
+        toast.custom(<Notification message={`Failed to load games. ${error}`} variant="error" />);
       }
     };
 
@@ -100,7 +105,7 @@ const Homepage = () => {
             </Tab>
           </Tab.List>
         </Tab.Group>
-        <GamesList games={filteredList} />
+        {filteredList.length > 0 ? <GamesList games={filteredList} /> : <Skeleton count={5} />}
       </>
     </div>
   );

@@ -5,14 +5,12 @@ export const Button = ({
   children,
   onClick,
   className,
-  props,
 }: {
   variant: 'primary' | 'secondary' | 'cta';
   children: string | JSX.Element;
   onClick: (() => void) | MouseEventHandler<HTMLButtonElement>;
   className?: string;
-  props?: JSX.IntrinsicAttributes;
-}) => {
+} & JSX.IntrinsicElements['button']) => {
   let styles = {
     primary: 'font-serif text-2xl shadow-primus bg-primus-orange text-white py-5px rounded-3px',
     secondary:
@@ -21,7 +19,7 @@ export const Button = ({
   };
 
   return (
-    <button className={`${styles[variant]} ${className}`} onClick={onClick} {...props}>
+    <button className={`${styles[variant]} ${className}`} onClick={onClick}>
       {children}
     </button>
   );

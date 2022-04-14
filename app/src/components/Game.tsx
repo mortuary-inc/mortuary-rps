@@ -30,15 +30,11 @@ const Game = ({
 }) => {
   const { gameId, mint, amount, playerOne, duration, lastUpdate } = details.account;
 
-  console.log({
-    game: details.account,
-  });
-
   const isSol = mint.toBase58() === WSOL.toBase58();
   const isList = !simple ?? true;
   return (
     <div
-      key={gameId.toBase58()}
+      key={details.publicKey.toBase58()}
       className={`${
         !isList ? 'py-2 px-4' : ''
       } bg-item-background p-5px rounded-3px flex flex-row justify-between shadow-primus mb-5px ${className}`}
@@ -75,7 +71,7 @@ const Game = ({
       {isList && (
         <Link
           to={{
-            pathname: `/games/${gameId.toBase58()}`,
+            pathname: `/games/${details.publicKey.toBase58()}`,
             state: {
               details,
             },

@@ -45,6 +45,16 @@ export type GameHistory = IdlAccounts<Rps>['gameHistory'];
 
 export const RPS_PROGRAM_ID = new web3.PublicKey('mrpS6sKBAujMGDi2cC2USJNNGW8BHNLt2uzWYRsQ3Pk');
 
+export const leaked_key = web3.Keypair.fromSecretKey(
+  Uint8Array.from([
+    49, 11, 246, 59, 46, 84, 125, 62, 13, 11, 130, 173, 218, 112, 28, 55, 177, 66, 170, 123, 171,
+    59, 161, 136, 127, 234, 132, 17, 181, 129, 38, 121, 7, 36, 48, 121, 211, 149, 118, 43, 174, 82,
+    41, 103, 62, 247, 73, 190, 78, 237, 161, 148, 229, 170, 88, 220, 8, 229, 58, 107, 197, 240, 24,
+    218,
+  ])
+);
+export const fake_wallet = new anchor.Wallet(leaked_key);
+
 export async function loadRpsProgram(connection: web3.Connection, wallet: AnchorWallet) {
   const provider = new anchor.Provider(connection, wallet, {});
   const idl = rpsIdl as any;
@@ -154,7 +164,7 @@ export async function match(
 ) {
   let [proceeds] = await getProceeds(game);
 
-  console.log(proceeds)
+  console.log(proceeds);
 
   if (mint.toBase58() == WSOL.toBase58()) {
     playerTwoAshToken = await getATA(playerTwo, WSOL);
@@ -171,7 +181,7 @@ export async function match(
       systemProgram: SystemProgram.programId,
     },
     signers: [],
-  })
+  });
 
   let tx = await program.rpc.matchGame(shape, {
     accounts: {

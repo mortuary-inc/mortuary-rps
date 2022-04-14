@@ -5,7 +5,7 @@ import Game from './Game';
 const GamesList = ({ games }: { games: ProgramAccount<GameAccount>[] }) => (
   <div>
     {games.map((game) => (
-      <Game details={game} />
+      <Game key={game.publicKey.toBase58()} details={game} />
     ))}
   </div>
 );

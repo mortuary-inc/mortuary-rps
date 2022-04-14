@@ -12,7 +12,7 @@ import Fight from 'features/Routes/Fight';
 const Homepage = lazy(() => import('./features/Routes/Homepage'));
 
 const renderLoader = () => (
-  <div className="inline-flex items-center px-4 py-2 font-sans leading-6 text-sm shadow rounded-md text-primary bg-third transition ease-in-out duration-150 cursor-not-allowed ml-4 mt-4">
+  <div className="inline-flex items-center px-4 py-2 font-sans leading-6 text-sm shadow rounded-md text-primary bg-primus-orange transition ease-in-out duration-150 cursor-not-allowed ml-4 mt-4">
     <svg
       className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary"
       xmlns="http://www.w3.org/2000/svg"

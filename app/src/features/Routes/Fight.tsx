@@ -8,20 +8,45 @@ import { Button } from 'components/Button';
 import { ReactComponent as Rocket } from 'assets/rocket.svg';
 import { ReactComponent as Plasma } from 'assets/plasma.svg';
 import { ReactComponent as Sniper } from 'assets/sniper.svg';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './Fight.module.css';
-import { getATA, loadRpsProgram, match } from '../../web3/rpsHelper';
+import { fake_wallet, getATA, loadRpsProgram, match } from '../../web3/rpsHelper';
 import { ASH_MINT, SOLANA_RPC_HOST } from '../../web3/accounts';
+
+import toast from 'react-hot-toast';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { Notification } from '../Notification/Notification';
 
 const Fight = () => {
   const { publicKey } = useWallet();
   const wallet = useAnchorWallet();
   const { id } = useParams() as { id: string };
 
-  const {
-    state: { details },
-  } = useLocation() as unknown as { state: { details: ProgramAccount<GameAccount> } };
+  const [currentGame, setCurrentGame] = useState<ProgramAccount<GameAccount>>();
+  const [isMatching, setIsMatching] = useState<boolean>(false);
   const [shape, setShape] = useState<Shape>(Shape.Rock);
+
+  useEffect(() => {
+    let connection = new web3.Connection(SOLANA_RPC_HOST);
+
+    const loadGame = async () => {
+      try {
+        toast.custom(<Notification message={`Loading game...`} variant="info" />);
+
+        let program = await loadRpsProgram(connection, fake_wallet);
+        let rpsList =
+          (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
+
+        setCurrentGame(rpsList.find((rps) => rps.publicKey.toBase58() === id));
+        toast.custom(<Notification message={`Game loaded`} variant="success" />);
+      } catch {
+        toast.custom(<Notification message={`Failed to load game.`} variant="error" />);
+      }
+    };
+
+    loadGame();
+  }, [id]);
 
   const handleWeaponChange = (index: Number) => {
     if (index === 0) {
@@ -34,15 +59,25 @@ const Fight = () => {
   };
 
   const handleMatch = async () => {
-    if (wallet && publicKey) {
-      let connection = new web3.Connection(SOLANA_RPC_HOST);
+    if (!wallet || !publicKey) return;
 
-      let program = await loadRpsProgram(connection, wallet);
+    let connection = new web3.Connection(SOLANA_RPC_HOST);
+    let program = await loadRpsProgram(connection, wallet);
+
+    try {
+      setIsMatching(true);
+      toast.custom(<Notification message={`Matching...`} variant="info" />);
+
       const playerTwoAshToken = await getATA(publicKey, ASH_MINT);
 
-      const [game] = await getGame(details.account.gameId);
+      const [game] = await getGame(new web3.PublicKey(id));
 
-      await match(program, game, details.account.mint, publicKey, playerTwoAshToken, shape);
+      await match(program, game, game, publicKey, playerTwoAshToken, shape);
+      toast.custom(<Notification message={`Matched!`} variant="success" />);
+      setIsMatching(false);
+    } catch (e) {
+      toast.custom(<Notification message={`Failed to match. ${e}`} variant="error" />);
+      setIsMatching(false);
     }
   };
 
@@ -53,7 +88,11 @@ const Fight = () => {
       <div className="font-sans text-sm text-primus-copy">
         It is time to find a worthy opponent.
       </div>
-      {details && <Game className="mt-5" details={details} simple={true} />}
+      {currentGame ? (
+        <Game className="mt-5" details={currentGame} simple={true} />
+      ) : (
+        <Skeleton count={2} />
+      )}
       <div className="font-sans text-primus-label text-sm text-left mt-3 mb-2">
         Choose your weapon
       </div>
@@ -91,8 +130,15 @@ const Fight = () => {
           </Tab>
         </Tab.List>
       </Tab.Group>
-      <Button variant="cta" onClick={handleMatch}>
-        FIGHT
+      <Button
+        variant="cta"
+        onClick={handleMatch}
+        disabled={isMatching || !wallet}
+        className={`${
+          isMatching || !wallet ? 'opacity-50 cursor-not-allowed bg-primus-dark-grey' : ''
+        }`}
+      >
+        {isMatching ? 'MATCHING...' : wallet ? 'FIGHT' : 'CONNECT WALLET TO FIGHT'}
       </Button>
     </div>
   );
