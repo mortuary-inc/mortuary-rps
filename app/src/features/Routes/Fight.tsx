@@ -1,4 +1,5 @@
-import { ProgramAccount } from '@project-serum/anchor';
+import { ProgramAccount, web3 } from '@project-serum/anchor';
+import { useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
 import { useLocation, useParams } from 'react-router-dom';
 import { GameAccount, Shape } from 'web3/rpsHelper';
 import Game from 'components/Game';
@@ -8,9 +9,15 @@ import { ReactComponent as Rocket } from 'assets/rocket.svg';
 import { ReactComponent as Plasma } from 'assets/plasma.svg';
 import { ReactComponent as Sniper } from 'assets/sniper.svg';
 import { useState } from 'react';
+import styles from './Fight.module.css';
+import { getATA, loadRpsProgram, match } from '../../web3/rpsHelper';
+import { ASH_MINT, SOLANA_RPC_HOST } from '../../web3/accounts';
 
 const Fight = () => {
+  const { publicKey } = useWallet();
+  const wallet = useAnchorWallet();
   const { id } = useParams() as { id: string };
+
   const {
     state: { details },
   } = useLocation() as unknown as { state: { details: ProgramAccount<GameAccount> } };
@@ -23,6 +30,23 @@ const Fight = () => {
       setShape(Shape.Paper);
     } else {
       setShape(Shape.Scissor);
+    }
+  };
+
+  const handleMatch = async () => {
+    if (wallet && publicKey) {
+      let connection = new web3.Connection(SOLANA_RPC_HOST);
+
+      let program = await loadRpsProgram(connection, wallet);
+      const playerTwoAshToken = await getATA(publicKey, ASH_MINT);
+      await match(
+        program,
+        new web3.PublicKey(id),
+        details.account.mint,
+        publicKey,
+        playerTwoAshToken,
+        shape
+      );
     }
   };
 
@@ -45,7 +69,9 @@ const Fight = () => {
               `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
             }
           >
-            <Rocket className={`m-auto ${shape === Shape.Rock ? 'text-primus-orange' : ''}`} />
+            <Rocket
+              className={`m-auto ${shape === Shape.Rock ? styles.selected : styles.unselected}`}
+            />
           </Tab>
           <Tab
             className={({ selected }) =>
@@ -54,18 +80,22 @@ const Fight = () => {
               }`
             }
           >
-            <Plasma className={`m-auto ${shape === Shape.Paper ? '' : ''}`} />
+            <Plasma
+              className={`m-auto ${shape === Shape.Paper ? styles.selected : styles.unselected}`}
+            />
           </Tab>
           <Tab
             className={({ selected }) =>
               `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
             }
           >
-            <Sniper className={`m-auto ${shape === Shape.Scissor ? 'text-primus-orange' : ''}`} />
+            <Sniper
+              className={`m-auto ${shape === Shape.Scissor ? styles.selected : styles.unselected}`}
+            />
           </Tab>
         </Tab.List>
       </Tab.Group>
-      <Button variant="cta" onClick={() => {}}>
+      <Button variant="cta" onClick={handleMatch}>
         FIGHT
       </Button>
     </div>

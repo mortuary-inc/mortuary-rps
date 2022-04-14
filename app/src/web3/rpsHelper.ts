@@ -148,27 +148,27 @@ export async function match(
   program: Program<Rps>,
   game: web3.PublicKey,
   mint: web3.PublicKey,
-  playerTwo: web3.Keypair,
+  playerTwo: web3.PublicKey,
   playerTwoAshToken: web3.PublicKey,
   shape: Shape
 ) {
   let [proceeds] = await getProceeds(game);
 
   if (mint.toBase58() == WSOL.toBase58()) {
-    playerTwoAshToken = await getATA(playerTwo.publicKey, WSOL);
+    playerTwoAshToken = await getATA(playerTwo, WSOL);
   }
 
   let tx = await program.rpc.matchGame(shape, {
     accounts: {
       game: game,
-      playerTwo: playerTwo.publicKey,
+      playerTwo,
       playerTwoTokenAccount: playerTwoAshToken,
       proceeds: proceeds,
       clock: web3.SYSVAR_CLOCK_PUBKEY,
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     },
-    signers: [playerTwo],
+    signers: [],
   });
 }
 

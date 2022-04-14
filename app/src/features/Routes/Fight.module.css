@@ -1,0 +1,15 @@
+.unselected > g > path {
+  fill: theme('colors.primus-dark-grey');
+}
+
+.unselected > path {
+  fill: theme('colors.primus-dark-grey');
+}
+
+.selected > g > path {
+  fill: theme('colors.primus-orange');
+}
+
+.selected > path {
+  fill: theme('colors.primus-orange');
+}

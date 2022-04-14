@@ -3,9 +3,9 @@ import { useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import GamesList from '../../components/GamesList';
-import { ASH_MINT, SOLANA_RPC_HOST, WSOL } from '../../web3/accounts';
+import { ADMIN, ASH_MINT, SOLANA_RPC_HOST, WSOL } from '../../web3/accounts';
 import { Tab } from '@headlessui/react';
-import { GameAccount, getATA, loadRpsProgram } from '../../web3/rpsHelper';
+import { GameAccount, getATA, loadRpsProgram, Shape, start } from '../../web3/rpsHelper';
 import Connect from '../Connect/Connect';
 import Disconnect from '../Connect/Disconnect';
 
@@ -31,13 +31,14 @@ const Homepage = () => {
         //   program,
         //   ADMIN,
         //   publicKey,
-        //   ASH_MINT,
+        //   WSOL,
         //   playerOneAshToken,
-        //   1,
+        //   0.01,
         //   'secret',
         //   Shape.Rock,
-        //   10
+        //   3600000
         // );
+        console.log(rpsList);
         setGamesList(rpsList);
         setFilteredList(rpsList);
       }
