@@ -38,7 +38,6 @@ const Homepage = () => {
         //   Shape.Rock,
         //   3600000
         // );
-        console.log(rpsList);
         setGamesList(rpsList);
         setFilteredList(rpsList);
       }

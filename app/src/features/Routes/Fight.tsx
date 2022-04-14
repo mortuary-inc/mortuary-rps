@@ -1,7 +1,7 @@
 import { ProgramAccount, web3 } from '@project-serum/anchor';
 import { useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
 import { useLocation, useParams } from 'react-router-dom';
-import { GameAccount, Shape } from 'web3/rpsHelper';
+import { GameAccount, Shape, getGame } from 'web3/rpsHelper';
 import Game from 'components/Game';
 import { Tab } from '@headlessui/react';
 import { Button } from 'components/Button';
@@ -39,14 +39,10 @@ const Fight = () => {
 
       let program = await loadRpsProgram(connection, wallet);
       const playerTwoAshToken = await getATA(publicKey, ASH_MINT);
-      await match(
-        program,
-        new web3.PublicKey(id),
-        details.account.mint,
-        publicKey,
-        playerTwoAshToken,
-        shape
-      );
+
+      const [game] = await getGame(details.account.gameId);
+
+      await match(program, game, details.account.mint, publicKey, playerTwoAshToken, shape);
     }
   };
 

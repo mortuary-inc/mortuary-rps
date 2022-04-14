@@ -28,7 +28,11 @@ const Game = ({
   simple?: Boolean;
   className?: string;
 }) => {
-  const { gameId, mint, amount, playerOne, duration } = details.account;
+  const { gameId, mint, amount, playerOne, duration, lastUpdate } = details.account;
+
+  console.log({
+    game: details.account,
+  });
 
   const isSol = mint.toBase58() === WSOL.toBase58();
   const isList = !simple ?? true;
@@ -50,7 +54,7 @@ const Game = ({
         header={'TIME'}
         value={
           <Countdown
-            date={Number(details.account.lastUpdate) + Number(duration) * 1000}
+            date={(Number(lastUpdate) + Number(duration)) * 1000}
             renderer={({ hours, minutes, seconds }) => {
               return (
                 <div>

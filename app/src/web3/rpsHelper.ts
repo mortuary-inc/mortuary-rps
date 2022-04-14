@@ -154,16 +154,31 @@ export async function match(
 ) {
   let [proceeds] = await getProceeds(game);
 
+  console.log(proceeds)
+
   if (mint.toBase58() == WSOL.toBase58()) {
     playerTwoAshToken = await getATA(playerTwo, WSOL);
   }
 
-  let tx = await program.rpc.matchGame(shape, {
+  console.log({
     accounts: {
-      game: game,
+      game,
       playerTwo,
       playerTwoTokenAccount: playerTwoAshToken,
-      proceeds: proceeds,
+      proceeds,
+      clock: web3.SYSVAR_CLOCK_PUBKEY,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    },
+    signers: [],
+  })
+
+  let tx = await program.rpc.matchGame(shape, {
+    accounts: {
+      game,
+      playerTwo,
+      playerTwoTokenAccount: playerTwoAshToken,
+      proceeds,
       clock: web3.SYSVAR_CLOCK_PUBKEY,
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
