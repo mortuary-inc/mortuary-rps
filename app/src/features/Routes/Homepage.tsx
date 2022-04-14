@@ -3,16 +3,9 @@ import { useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import GamesList from '../../components/GamesList';
-import { ADMIN, ASH_MINT, SOLANA_RPC_HOST, WSOL } from '../../web3/accounts';
+import { ASH_MINT, SOLANA_RPC_HOST, WSOL } from '../../web3/accounts';
 import { Tab } from '@headlessui/react';
-import {
-  GameAccount,
-  Shape,
-  getATA,
-  loadHistory,
-  loadRpsProgram,
-  start,
-} from '../../web3/rpsHelper';
+import { GameAccount, getATA, loadRpsProgram } from '../../web3/rpsHelper';
 import Connect from '../Connect/Connect';
 import Disconnect from '../Connect/Disconnect';
 
@@ -21,6 +14,7 @@ const Homepage = () => {
   const wallet = useAnchorWallet();
 
   const [gamesList, setGamesList] = useState<ProgramAccount<GameAccount>[]>([]);
+  const [filteredList, setFilteredList] = useState<ProgramAccount<GameAccount>[]>([]);
 
   useEffect(() => {
     let connection = new web3.Connection(SOLANA_RPC_HOST);
@@ -44,14 +38,25 @@ const Homepage = () => {
         //   Shape.Rock,
         //   10
         // );
-
         setGamesList(rpsList);
-        console.log('rpsList', rpsList);
+        setFilteredList(rpsList);
       }
     };
 
     historyLoader();
   }, [wallet, publicKey]);
+
+  const handleChangeFilter = (index) => {
+    if (index === 1) {
+      setFilteredList(
+        gamesList.filter((game) => game.account.mint.toBase58() === ASH_MINT.toBase58())
+      );
+    } else if (index === 2) {
+      setFilteredList(gamesList.filter((game) => game.account.mint.toBase58() === WSOL.toBase58()));
+    } else {
+      setFilteredList(gamesList);
+    }
+  };
 
   return (
     <div className="m-auto max-w-lg">
@@ -62,38 +67,41 @@ const Homepage = () => {
         <Connect />
         <Disconnect />
       </div>
-      <h2>GAME IN PROGRESS</h2>
-      <Tab.Group defaultIndex={0}>
-        <Tab.List>
-          <Tab
-            className={({ selected }) =>
-              selected ? 'bg-blue-500 text-white' : 'bg-white text-black'
-            }
-          >
-            All games
-          </Tab>
-          <Tab
-            className={({ selected }) =>
-              selected ? 'bg-blue-500 text-white' : 'bg-white text-black'
-            }
-          >
-            $ASH Only
-          </Tab>
-          <Tab
-            className={({ selected }) =>
-              selected ? 'bg-blue-500 text-white' : 'bg-white text-black'
-            }
-          >
-            $SOL Only
-          </Tab>
-        </Tab.List>
-        <Tab.Panels>
-          <Tab.Panel>Content 1</Tab.Panel>
-          <Tab.Panel>Content 2</Tab.Panel>
-          <Tab.Panel>Content 3</Tab.Panel>
-        </Tab.Panels>
-      </Tab.Group>
-      <GamesList games={gamesList} />
+      <>
+        <h2 className="text-primus-orange font-serif text-3xl text-center mb-6">
+          GAME IN PROGRESS
+        </h2>
+        <Tab.Group defaultIndex={0} onChange={handleChangeFilter}>
+          <Tab.List className="w-104 h-12 bg-primus-light-grey rounded-10px p-1 m-auto mb-3">
+            <Tab
+              className={({ selected }) =>
+                `bg-white py-2 w-36 rounded-10px mr-1 ${
+                  !selected ? 'bg-opacity-25' : 'bg-opacity-75'
+                }`
+              }
+            >
+              All games
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                `bg-white py-2 w-36 rounded-10px mr-1 ${
+                  !selected ? 'bg-opacity-25' : 'bg-opacity-75'
+                }`
+              }
+            >
+              $ASH Only
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                `bg-white py-2 w-36 rounded-10px ${!selected ? 'bg-opacity-25' : 'bg-opacity-75'}`
+              }
+            >
+              $SOL Only
+            </Tab>
+          </Tab.List>
+        </Tab.Group>
+        <GamesList games={filteredList} />
+      </>
     </div>
   );
 };

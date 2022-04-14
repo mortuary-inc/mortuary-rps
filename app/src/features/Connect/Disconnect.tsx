@@ -1,7 +1,7 @@
 import { useWallet } from '@solana/wallet-adapter-react';
 import { MouseEventHandler, useCallback, useMemo } from 'react';
 import { Button } from '../../components/Button';
-const Disconnect = () => {
+const Disconnect = ({ className }: { className?: string }) => {
   const { publicKey, disconnect } = useWallet();
   const base58 = useMemo(() => publicKey?.toBase58(), [publicKey]);
 
@@ -15,7 +15,7 @@ const Disconnect = () => {
   return !base58 ? (
     <></>
   ) : (
-    <Button onClick={handleDisconnect} variant="secondary" className="w-40">
+    <Button onClick={handleDisconnect} variant="secondary" className={`w-40 ${className}`}>
       DISCONNECT
     </Button>
   );

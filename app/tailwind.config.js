@@ -25,18 +25,21 @@ const colorTheme = {
   'primus-orange': '#FF812B',
   'primus-grey': '#D2D2D2',
   'primus-dark-grey': '#969696',
+  'primus-light-grey': '#F0F0F0',
+  'primus-title': '#CECECE',
+  'primus-copy': '#3B3B3B',
+  'primus-label': '#C5C5C5',
+  'rps-bg': '#F2F2F2'
 };
 
 module.exports = {
   purge: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'],
   darkMode: false, // or 'media' or 'class'
   theme: {
-    borderRadius: {
-      '3px': '3px',
-    },
     extend: {
       borderRadius: {
         '3px': '3px',
+        '10px': '10px',
       },
       backgroundColor: colorTheme,
       textColor: colorTheme,
@@ -113,6 +116,7 @@ module.exports = {
       },
       boxShadow: {
         primus: '-4px 4px 0px 0px #0000001A',
+        border: 'inset 0px 0px 0px 2px #FF812B ',
       },
     },
   },
