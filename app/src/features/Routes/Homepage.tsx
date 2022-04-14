@@ -41,7 +41,10 @@ const Homepage = () => {
           toast.error('No games found');
         }
         toast.custom(
-          <Notification message={`${rpsList.length} ongoing games found`} variant="success" />
+          <Notification
+            message={`${startedOnlyGames.length} ongoing games found`}
+            variant="success"
+          />
         );
       } catch (error) {
         toast.custom(<Notification message={`Failed to load games. ${error}`} variant="error" />);

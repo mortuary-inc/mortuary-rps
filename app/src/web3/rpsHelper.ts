@@ -164,21 +164,19 @@ export async function match(
 ) {
   let [proceeds] = await getProceeds(game);
 
-  console.log(proceeds);
-
   if (mint.toBase58() == WSOL.toBase58()) {
     playerTwoAshToken = await getATA(playerTwo, WSOL);
   }
 
   console.log({
     accounts: {
-      game,
-      playerTwo,
-      playerTwoTokenAccount: playerTwoAshToken,
-      proceeds,
-      clock: web3.SYSVAR_CLOCK_PUBKEY,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
+      game: game.toBase58(),
+      playerTwo: playerTwo.toBase58(),
+      playerTwoTokenAccount: playerTwoAshToken.toBase58(),
+      proceeds: proceeds.toBase58(),
+      clock: web3.SYSVAR_CLOCK_PUBKEY.toBase58(),
+      tokenProgram: TOKEN_PROGRAM_ID.toBase58(),
+      systemProgram: SystemProgram.programId.toBase58(),
     },
     signers: [],
   });

@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Notification } from '../Notification/Notification';
+import Countdown from 'react-countdown';
 
 const Fight = () => {
   const { publicKey } = useWallet();
@@ -26,6 +27,7 @@ const Fight = () => {
   const [currentGame, setCurrentGame] = useState<ProgramAccount<GameAccount>>();
   const [isMatching, setIsMatching] = useState<boolean>(false);
   const [shape, setShape] = useState<Shape>(Shape.Rock);
+  const [isStartStage, setIsStartStage] = useState<boolean>(false);
 
   useEffect(() => {
     let connection = new web3.Connection(SOLANA_RPC_HOST);
@@ -39,6 +41,7 @@ const Fight = () => {
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
         setCurrentGame(rpsList.find((rps) => rps.publicKey.toBase58() === id));
+        setIsStartStage(!!currentGame?.account.stage['start']);
         toast.custom(<Notification message={`Game loaded`} variant="success" />);
       } catch {
         toast.custom(<Notification message={`Failed to load game.`} variant="error" />);
@@ -59,7 +62,7 @@ const Fight = () => {
   };
 
   const handleMatch = async () => {
-    if (!wallet || !publicKey) return;
+    if (!wallet || !publicKey || !isStartStage) return;
 
     let connection = new web3.Connection(SOLANA_RPC_HOST);
     let program = await loadRpsProgram(connection, wallet);
@@ -70,9 +73,9 @@ const Fight = () => {
 
       const playerTwoAshToken = await getATA(publicKey, ASH_MINT);
 
-      const [game] = await getGame(new web3.PublicKey(id));
+      const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
 
-      await match(program, game, game, publicKey, playerTwoAshToken, shape);
+      await match(program, game, currentGame?.account.mint!, publicKey, playerTwoAshToken, shape);
       toast.custom(<Notification message={`Matched!`} variant="success" />);
       setIsMatching(false);
     } catch (e) {
@@ -83,7 +86,9 @@ const Fight = () => {
 
   return (
     <div className="mt-20 text-center m-auto max-w-lg">
-      <div className="font-serif text-4xl text-primus-title">ARE YOU READY?</div>
+      <div className="font-serif text-4xl text-primus-title">
+        {isStartStage ? 'ARE YOU READY?' : 'GRACE PERIOD...'}
+      </div>
       <div className="font-sans mt-5 text-sm text-primus-copy">Your RPS game has been created.</div>
       <div className="font-sans text-sm text-primus-copy">
         It is time to find a worthy opponent.
@@ -97,48 +102,77 @@ const Fight = () => {
         Choose your weapon
       </div>
 
-      <Tab.Group defaultIndex={0} onChange={handleWeaponChange}>
-        <Tab.List className="h-44 w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
-          <Tab
-            className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
-            }
-          >
-            <Rocket
-              className={`m-auto ${shape === Shape.Rock ? styles.selected : styles.unselected}`}
-            />
-          </Tab>
-          <Tab
-            className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px ${
-                !selected ? '' : 'shadow-border text-primus-orange'
-              }`
-            }
-          >
-            <Plasma
-              className={`m-auto ${shape === Shape.Paper ? styles.selected : styles.unselected}`}
-            />
-          </Tab>
-          <Tab
-            className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
-            }
-          >
-            <Sniper
-              className={`m-auto ${shape === Shape.Scissor ? styles.selected : styles.unselected}`}
-            />
-          </Tab>
-        </Tab.List>
-      </Tab.Group>
+      {isStartStage ? (
+        <Tab.Group defaultIndex={0} onChange={handleWeaponChange}>
+          <Tab.List className="h-44 w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
+            <Tab
+              className={({ selected }) =>
+                `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
+              }
+            >
+              <Rocket
+                className={`m-auto ${shape === Shape.Rock ? styles.selected : styles.unselected}`}
+              />
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                `bg-rps-bg h-full w-full rounded-3px ${
+                  !selected ? '' : 'shadow-border text-primus-orange'
+                }`
+              }
+            >
+              <Plasma
+                className={`m-auto ${shape === Shape.Paper ? styles.selected : styles.unselected}`}
+              />
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
+              }
+            >
+              <Sniper
+                className={`m-auto ${
+                  shape === Shape.Scissor ? styles.selected : styles.unselected
+                }`}
+              />
+            </Tab>
+          </Tab.List>
+        </Tab.Group>
+      ) : (
+        <div>Fighting Placeholder</div>
+      )}
       <Button
         variant="cta"
         onClick={handleMatch}
-        disabled={isMatching || !wallet}
+        disabled={isMatching || !wallet || !isStartStage}
         className={`${
-          isMatching || !wallet ? 'opacity-50 cursor-not-allowed bg-primus-dark-grey' : ''
+          isMatching || !wallet || !isStartStage
+            ? 'opacity-50 cursor-not-allowed bg-primus-dark-grey'
+            : ''
         }`}
       >
-        {isMatching ? 'MATCHING...' : wallet ? 'FIGHT' : 'CONNECT WALLET TO FIGHT'}
+        {!wallet ? (
+          'CONNECT WALLET TO FIGHT'
+        ) : !isStartStage ? (
+          <Countdown
+            date={
+              (Number(currentGame?.account.lastUpdate) + Number(currentGame?.account.duration)) *
+              1000
+            }
+            renderer={({ hours, minutes, seconds }) => {
+              return (
+                <div>
+                  {hours < 10 ? `0${hours}` : hours}:{minutes < 10 ? `0${minutes}` : minutes}:
+                  {seconds < 10 ? `0${seconds}` : seconds}
+                </div>
+              );
+            }}
+          />
+        ) : isMatching ? (
+          'MATCHING...'
+        ) : (
+          'FIGHT'
+        )}
       </Button>
     </div>
   );

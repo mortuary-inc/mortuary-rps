@@ -1,0 +1,11 @@
+.sniper > path {
+  fill: theme('colors.primus-dark-grey');
+}
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

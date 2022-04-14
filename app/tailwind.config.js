@@ -29,7 +29,8 @@ const colorTheme = {
   'primus-title': '#CECECE',
   'primus-copy': '#3B3B3B',
   'primus-label': '#C5C5C5',
-  'rps-bg': '#F2F2F2'
+  'rps-bg': '#F2F2F2',
+  'rps-info-bg': '#FFE3D0'
 };
 
 module.exports = {
@@ -116,7 +117,8 @@ module.exports = {
       },
       boxShadow: {
         primus: '-4px 4px 0px 0px #0000001A',
-        border: 'inset 0px 0px 0px 2px #FF812B ',
+        border: 'inset 0px 0px 0px 2px #FF812B',
+        info: 'inset -10px 0px 20px 0px #0000001A'
       },
     },
   },
