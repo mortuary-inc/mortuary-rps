@@ -13,6 +13,7 @@ import styles from './Create.module.css';
 
 import toast from 'react-hot-toast';
 import { Notification } from '../Notification/Notification';
+import { useHistory } from 'react-router-dom';
 
 const currencyOptions = {
   ASH: [25, 100, 250, 500],
@@ -22,6 +23,8 @@ const currencyOptions = {
 const Create = () => {
   const { publicKey } = useWallet();
   const wallet = useAnchorWallet();
+
+  const history = useHistory();
 
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [currency, setCurrency] = useState<'ASH' | 'SOL'>('ASH');
@@ -50,6 +53,8 @@ const Create = () => {
       );
       return;
     }
+
+    if (isCreating || !password || shape < 0 || shape > 2 || !timer) return;
 
     const loadingToast = toast.custom(
       <Notification message={`Creating game...`} variant="info" />,
@@ -86,9 +91,11 @@ const Create = () => {
         timer
       );
 
+      history.push(`/games/${new web3.Keypair().publicKey}/share`);
+
       toast.dismiss(loadingToast);
       setIsCreating(false);
-      toast.custom(<Notification message={`Game ${game.toBase58()} created`} variant="success" />);
+      // toast.custom(<Notification message={`Game ${game.toBase58()} created`} variant="success" />);
     } catch (error) {
       toast.dismiss(loadingToast);
       setIsCreating(false);
@@ -259,9 +266,11 @@ const Create = () => {
       <Button
         variant="cta"
         onClick={handleSubmit}
-        disabled={isCreating || !wallet}
+        disabled={isCreating || !wallet || !password || shape < 0 || shape > 2 || !timer}
         className={`${
-          isCreating || !wallet ? 'opacity-50 cursor-not-allowed bg-primus-dark-grey' : ''
+          isCreating || !wallet || !password || shape < 0 || shape > 2 || !timer
+            ? 'opacity-50 cursor-not-allowed bg-primus-dark-grey'
+            : ''
         }`}
       >
         {!publicKey ? 'CONNECT WALLET TO CREATE' : isCreating ? 'CREATING GAME...' : 'CREATE GAME'}

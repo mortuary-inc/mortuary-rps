@@ -45,6 +45,7 @@
     "react-router-dom": "5",
     "react-scripts": "4.0.3",
     "react-sticky-box": "^0.9.3",
+    "react-twitter-share-link": "^1.2.1",
     "swiper": "^7.4.1",
     "typescript": "^4.5.2",
     "web-vitals": "^1.0.1"
