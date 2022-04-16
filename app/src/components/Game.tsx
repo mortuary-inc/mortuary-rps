@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
+import { useWallet } from '@solana/wallet-adapter-react';
 import FightButton from './FightButton';
 import Countdown from 'react-countdown';
 import { truncateAddress } from '../lib/utils';
 import { ProgramAccount } from '@project-serum/anchor';
 import { GameAccount } from 'web3/rpsHelper';
 import { WSOL } from '../web3/accounts';
+import RevealButton from './RevealButton';
 
 const ItemContent = ({
   header,
@@ -28,7 +30,8 @@ const Game = ({
   simple?: Boolean;
   className?: string;
 }) => {
-  const { gameId, mint, amount, playerOne, duration, lastUpdate } = details.account;
+  const { publicKey } = useWallet();
+  const { mint, amount, playerOne, duration, lastUpdate, stage } = details.account;
 
   const isSol = mint.toBase58() === WSOL.toBase58();
   const isList = !simple ?? true;
@@ -72,12 +75,13 @@ const Game = ({
         <Link
           to={{
             pathname: `/games/${details.publicKey.toBase58()}`,
-            state: {
-              details,
-            },
           }}
         >
-          <FightButton />
+          {playerOne.toBase58() === publicKey?.toBase58() && stage['match'] ? (
+            <RevealButton />
+          ) : (
+            <FightButton isCreator={playerOne.toBase58() === publicKey?.toBase58()} />
+          )}
         </Link>
       )}
     </div>

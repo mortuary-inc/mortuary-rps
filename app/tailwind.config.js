@@ -30,7 +30,8 @@ const colorTheme = {
   'primus-copy': '#3B3B3B',
   'primus-label': '#C5C5C5',
   'rps-bg': '#F2F2F2',
-  'rps-info-bg': '#FFE3D0'
+  'rps-info-bg': '#FFE3D0',
+  'primus-light-orange': '#FFEDE0',
 };
 
 module.exports = {
@@ -97,6 +98,7 @@ module.exports = {
       },
       height: {
         '50-screen': '50vh',
+        '70px': '70px',
       },
       transitionTimingFunction: {
         bounce: 'cubic-bezier(0.19, 1, 0.22, 1)',
@@ -118,7 +120,7 @@ module.exports = {
       boxShadow: {
         primus: '-4px 4px 0px 0px #0000001A',
         border: 'inset 0px 0px 0px 2px #FF812B',
-        info: 'inset -10px 0px 20px 0px #0000001A'
+        info: 'inset -10px 0px 20px 0px #0000001A',
       },
     },
   },

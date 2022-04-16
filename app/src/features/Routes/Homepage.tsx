@@ -13,10 +13,13 @@ import toast from 'react-hot-toast';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Notification } from '../Notification/Notification';
+import { useHistory } from 'react-router-dom';
 
 const Homepage = () => {
   const { publicKey } = useWallet();
   const wallet = useAnchorWallet();
+
+  const history = useHistory();
 
   const [gamesList, setGamesList] = useState<ProgramAccount<GameAccount>[]>([]);
   const [filteredList, setFilteredList] = useState<ProgramAccount<GameAccount>[]>([]);
@@ -27,19 +30,26 @@ const Homepage = () => {
     const historyLoader = async () => {
       let program = await loadRpsProgram(connection, fake_wallet);
 
+      const fetchingToast = toast.custom(
+        <Notification message={`Fetching ongoing games...`} variant="info" />,
+        { duration: 61000 }
+      );
+
       try {
-        toast.custom(<Notification message={`Fetching ongoing games...`} variant="info" />);
         let rpsList =
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
-        const startedOnlyGames = rpsList.filter((rps) =>
-          Object.keys(rps.account.stage).find((stage) => stage === 'start')
+        const startedOnlyGames = rpsList.filter(
+          (rps) =>
+            Object.keys(rps.account.stage).find((stage) => stage === 'start') ||
+            (publicKey && rps.account.playerOne.toBase58() === publicKey.toBase58())
         );
         setGamesList(startedOnlyGames);
         setFilteredList(startedOnlyGames);
         if (rpsList.length === 0) {
           toast.error('No games found');
         }
+        toast.dismiss(fetchingToast);
         toast.custom(
           <Notification
             message={`${startedOnlyGames.length} ongoing games found`}
@@ -47,6 +57,7 @@ const Homepage = () => {
           />
         );
       } catch (error) {
+        toast.dismiss(fetchingToast);
         toast.custom(<Notification message={`Failed to load games. ${error}`} variant="error" />);
       }
     };
@@ -69,7 +80,11 @@ const Homepage = () => {
   return (
     <div className="m-auto max-w-lg">
       <div className="flex justify-center mb-10">
-        <Button variant="primary" className="px-6 mr-4" onClick={() => console.log('yes')}>
+        <Button
+          variant="primary"
+          className="px-6 mr-4"
+          onClick={() => history.push('/games/create')}
+        >
           CREATE A GAME
         </Button>
         <Connect />

@@ -10,7 +10,7 @@ import { ReactComponent as Plasma } from 'assets/plasma.svg';
 import { ReactComponent as Sniper } from 'assets/sniper.svg';
 import { useState, useEffect } from 'react';
 import styles from './Fight.module.css';
-import { fake_wallet, getATA, loadRpsProgram, match } from '../../web3/rpsHelper';
+import { fake_wallet, getATA, loadRpsProgram, match, reveal } from '../../web3/rpsHelper';
 import { ASH_MINT, SOLANA_RPC_HOST } from '../../web3/accounts';
 
 import toast from 'react-hot-toast';
@@ -26,30 +26,45 @@ const Fight = () => {
 
   const [currentGame, setCurrentGame] = useState<ProgramAccount<GameAccount>>();
   const [isMatching, setIsMatching] = useState<boolean>(false);
+  const [isRevealing, setIsRevealing] = useState<boolean>(false);
   const [shape, setShape] = useState<Shape>(Shape.Rock);
   const [isStartStage, setIsStartStage] = useState<boolean>(false);
+  const [isGameExpired, setIsGameExpired] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!wallet || !publicKey) return;
     let connection = new web3.Connection(SOLANA_RPC_HOST);
 
     const loadGame = async () => {
-      try {
-        toast.custom(<Notification message={`Loading game...`} variant="info" />);
+      const loadingToast = toast.custom(
+        <Notification message={`Loading game...`} variant="info" />
+      );
 
-        let program = await loadRpsProgram(connection, fake_wallet);
+      try {
+        let program = await loadRpsProgram(connection, wallet);
         let rpsList =
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
-        setCurrentGame(rpsList.find((rps) => rps.publicKey.toBase58() === id));
-        setIsStartStage(!!currentGame?.account.stage['start']);
+        const selectedGame = rpsList.find((rps) => rps.publicKey.toBase58() === id);
+        setCurrentGame(selectedGame);
+
+        setIsStartStage(!!selectedGame?.account.stage['start']);
+        setIsGameExpired(
+          Number(new Date()) >
+            (Number(selectedGame?.account?.lastUpdate) + Number(selectedGame?.account?.duration)) *
+              1000
+        );
+
+        toast.dismiss(loadingToast);
         toast.custom(<Notification message={`Game loaded`} variant="success" />);
       } catch {
+        toast.dismiss(loadingToast);
         toast.custom(<Notification message={`Failed to load game.`} variant="error" />);
       }
     };
 
     loadGame();
-  }, [id]);
+  }, [id, wallet, publicKey]);
 
   const handleWeaponChange = (index: Number) => {
     if (index === 0) {
@@ -61,26 +76,51 @@ const Fight = () => {
     }
   };
 
-  const handleMatch = async () => {
-    if (!wallet || !publicKey || !isStartStage) return;
+  const handleMatchOrReveal = async () => {
+    if (
+      !wallet ||
+      !publicKey ||
+      isGameExpired ||
+      (!isStartStage && !currentGame?.account.playerTwoRevealed)
+    )
+      return;
 
     let connection = new web3.Connection(SOLANA_RPC_HOST);
     let program = await loadRpsProgram(connection, wallet);
 
-    try {
-      setIsMatching(true);
-      toast.custom(<Notification message={`Matching...`} variant="info" />);
+    if (isStartStage) {
+      try {
+        setIsMatching(true);
+        toast.custom(<Notification message={`Matching...`} variant="info" />);
 
-      const playerTwoAshToken = await getATA(publicKey, ASH_MINT);
+        const playerTwoAshToken = await getATA(publicKey, ASH_MINT);
 
-      const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
+        const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
 
-      await match(program, game, currentGame?.account.mint!, publicKey, playerTwoAshToken, shape);
-      toast.custom(<Notification message={`Matched!`} variant="success" />);
-      setIsMatching(false);
-    } catch (e) {
-      toast.custom(<Notification message={`Failed to match. ${e}`} variant="error" />);
-      setIsMatching(false);
+        await match(program, game, currentGame?.account.mint!, publicKey, playerTwoAshToken, shape);
+        toast.custom(<Notification message={`Matched!`} variant="success" />);
+        setIsMatching(false);
+      } catch (e) {
+        toast.custom(<Notification message={`Failed to match. ${e}`} variant="error" />);
+        setIsMatching(false);
+      }
+    } else if (
+      currentGame?.account.playerTwoRevealed &&
+      currentGame?.account.playerOne.toBase58() === publicKey.toBase58()
+    ) {
+      try {
+        setIsRevealing(true);
+        toast.custom(<Notification message={`Revealing...`} variant="info" />);
+
+        const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
+
+        await reveal(program, game, publicKey, Shape.Rock, 'secret');
+        toast.custom(<Notification message={`Revealed!`} variant="success" />);
+        setIsRevealing(false);
+      } catch (e) {
+        toast.custom(<Notification message={`Failed to reveal. ${e}`} variant="error" />);
+        setIsRevealing(false);
+      }
     }
   };
 
@@ -143,20 +183,41 @@ const Fight = () => {
       )}
       <Button
         variant="cta"
-        onClick={handleMatch}
-        disabled={isMatching || !wallet || !isStartStage}
+        onClick={handleMatchOrReveal}
+        disabled={
+          isGameExpired ||
+          isMatching ||
+          isRevealing ||
+          !wallet ||
+          (!isStartStage &&
+            publicKey?.toBase58() !== currentGame?.account.playerOne.toBase58() &&
+            !currentGame?.account.playerTwoRevealed)
+        }
         className={`${
-          isMatching || !wallet || !isStartStage
+          isGameExpired ||
+          isMatching ||
+          isRevealing ||
+          !wallet ||
+          (!isStartStage &&
+            publicKey?.toBase58() !== currentGame?.account.playerOne.toBase58() &&
+            !currentGame?.account.playerTwoRevealed)
             ? 'opacity-50 cursor-not-allowed bg-primus-dark-grey'
             : ''
         }`}
       >
-        {!wallet ? (
+        {!publicKey ? (
           'CONNECT WALLET TO FIGHT'
-        ) : !isStartStage ? (
+        ) : isGameExpired ? (
+          'EXPIRED'
+        ) : currentGame &&
+          publicKey?.toBase58() === currentGame?.account.playerOne.toBase58() &&
+          currentGame?.account.playerTwoRevealed &&
+          !isRevealing ? (
+          'REVEAL NOW'
+        ) : !isStartStage && currentGame ? (
           <Countdown
             date={
-              (Number(currentGame?.account.lastUpdate) + Number(currentGame?.account.duration)) *
+              (Number(currentGame?.account?.lastUpdate) + Number(currentGame?.account?.duration)) *
               1000
             }
             renderer={({ hours, minutes, seconds }) => {
@@ -170,6 +231,8 @@ const Fight = () => {
           />
         ) : isMatching ? (
           'MATCHING...'
+        ) : isRevealing ? (
+          'REVEALING...'
         ) : (
           'FIGHT'
         )}

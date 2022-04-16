@@ -8,6 +8,7 @@ import TextDef from 'i18n/default.json';
 import useAppText from 'hooks/useAppText';
 import ThemeWrapper from 'components/ThemeWrapper';
 import Fight from 'features/Routes/Fight';
+import Create from 'features/Routes/Create';
 
 const Homepage = lazy(() => import('./features/Routes/Homepage'));
 
@@ -63,6 +64,13 @@ function App() {
               <Suspense fallback={renderLoader()}>
                 <ThemeWrapper darkMode={false} nav={true} footer={true} forceH={true}>
                   <Homepage />
+                </ThemeWrapper>
+              </Suspense>
+            </Route>
+            <Route path={Routes.Create} exact>
+              <Suspense fallback={renderLoader()}>
+                <ThemeWrapper darkMode={false} nav={true} footer={true} forceH={true}>
+                  <Create />
                 </ThemeWrapper>
               </Suspense>
             </Route>

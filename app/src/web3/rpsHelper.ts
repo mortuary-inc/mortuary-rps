@@ -198,7 +198,7 @@ export async function match(
 export async function reveal(
   program: Program<Rps>,
   game: web3.PublicKey,
-  playerOne: web3.Keypair,
+  playerOne: web3.PublicKey,
   shape: Shape,
   secret: string
 ) {
@@ -210,7 +210,7 @@ export async function reveal(
   let tx = await program.rpc.revealGame(shape, h, {
     accounts: {
       game: game,
-      playerOne: playerOne.publicKey,
+      playerOne: playerOne,
       playerTwo: gameData.playerTwo,
       playerOneTokenAccount: gameData.playerOneTokenAccount,
       playerTwoTokenAccount: gameData.playerTwoTokenAccount,
@@ -222,7 +222,7 @@ export async function reveal(
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     },
-    signers: [playerOne],
+    signers: [],
   });
 }
 
