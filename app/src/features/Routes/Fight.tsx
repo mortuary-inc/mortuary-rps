@@ -114,7 +114,7 @@ const Fight = () => {
 
         const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
 
-        await reveal(program, game, publicKey, Shape.Rock, 'secret');
+        await reveal(program, game, publicKey, 'secret');
         toast.custom(<Notification message={`Revealed!`} variant="success" />);
         setIsRevealing(false);
       } catch (e) {

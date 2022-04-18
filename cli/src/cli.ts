@@ -10,7 +10,7 @@ import { initBank } from "./init";
 import { ASH_MINT } from "../../app/src/web3/accounts";
 
 async function run() {
-    let network: Cluster = "devnet";
+    let network = "devnet";
     let args = process.argv.slice(2);
     if (args.length > 0) {
         let n = args[0];
@@ -19,13 +19,18 @@ async function run() {
     console.log("Will connect to " + network);
 
     let rpc = "";
+    let ash = 'ASHTTPcMddo7RsYHEyTv3nutMWvK8S4wgFUy3seAohja';
     if (network == "mainnet-beta") {
         rpc = "https://api.metaplex.solana.com/";
+    } else if(network == "localnet") {
+        rpc = "http://127.0.0.1:8899/";
     } else {
-        rpc = clusterApiUrl(network);
+        rpc = clusterApiUrl(network as Cluster);
+        ash = '3pS315UKoD5s9AQkaWJNaPSDPnCX6YZmV3thRCSgFo2u';
     }
+    
 
-    const keypair = web3.Keypair.fromSecretKey(new Uint8Array(JSON.parse(fs.readFileSync("/home/mathieu/.config/solana/main.json").toString())));
+    const keypair = web3.Keypair.fromSecretKey(new Uint8Array(JSON.parse(fs.readFileSync("/Users/mbarbier/.config/solana/main.json").toString())));
     console.log("Loaded keypair of " + keypair.publicKey);
 
     const walletWrapper = new anchor.Wallet(keypair);
@@ -33,9 +38,9 @@ async function run() {
     const provider = new anchor.Provider(connection, walletWrapper, {});
     const idl = rpsIdl as any;
     const program = new anchor.Program(idl, RPS_PROGRAM_ID, provider) as Program<Rps>;
-    //await initBank(program, keypair, ASH_MINT);
+    //await initBank(program, keypair, new web3.PublicKey(ash));
 
-    let [bankConfigAddr] = await getBankConfigAddress(ASH_MINT);
+    let [bankConfigAddr] = await getBankConfigAddress(new web3.PublicKey(ash));
     let bankConfig = (await program.account.bankConfig.fetch(bankConfigAddr)) as BankConfig;
     console.log("Bank config: " + bankConfigAddr.toBase58());
     console.log("Bank: " + bankConfig.bank);
