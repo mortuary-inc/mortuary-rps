@@ -3,4 +3,5 @@ export const Routes = {
   Create: '/games/create',
   Fight: '/games/:id',
   Share: '/games/:id/share',
+  AdminList: '/admin/list',
 };

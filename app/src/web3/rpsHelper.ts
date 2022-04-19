@@ -32,6 +32,14 @@ export function expand(secret: string, shape: number) {
   return h;
 }
 
+function hashEquals(h1: number[], h2: number[]) {
+  if (h1.length !== h2.length) return false;
+  for (let i = 0; i < h1.length; i++) {
+    if (h1[i] !== h2[i]) return false;
+  }
+  return true;
+}
+
 export function getSecretSmall(secret: string) {
   const hasher = keccak_256.create();
   hasher.update(secret);
@@ -97,6 +105,13 @@ export enum Shape {
   Rock = 2,
 }
 
+export function shapeToString(shape: Shape) {
+  if(shape === Shape.Paper) return "Paper/Plasma";
+  if(shape === Shape.Scissor) return "Scissor/Sniper";
+  if(shape === Shape.Rock) return "Rock/Rocket";
+  return "";
+}
+
 export async function withdraw(program: Program<Rps>, admin: web3.Keypair, bank: web3.PublicKey) {
   const adminAshATA = await getATA(admin.publicKey, ASH_MINT);
 
@@ -134,6 +149,8 @@ export async function start(
     amount = amount * web3.LAMPORTS_PER_SOL;
   }
 
+  console.log("Playing: " + shapeToString(shape));
+
   await program.rpc.startGame(new anchor.BN(amount), hash, new anchor.BN(duration), {
     accounts: {
       admin,
@@ -168,6 +185,8 @@ export async function match(
     playerTwoAshToken = await getATA(playerTwo, WSOL);
   }
 
+  console.log("Playing: " + shapeToString(shape));
+
   console.log({
     accounts: {
       game: game.toBase58(),
@@ -193,18 +212,38 @@ export async function match(
     },
     signers: [],
   });
+  return tx;
 }
 
 export async function reveal(
   program: Program<Rps>,
   game: web3.PublicKey,
   playerOne: web3.PublicKey,
-  shape: Shape,
   secret: string
 ) {
   let gameData = (await program.account.game.fetch(game)) as unknown as GameAccount;
   let [proceeds] = await getProceeds(game);
   let [history] = await getHistory(game);
+
+  let commited = gameData.playerOneCommitted as number[];
+  let shape: Shape;
+  let test = expand(secret, Shape.Rock);
+  if (hashEquals(commited, test)) {
+    shape = Shape.Rock;
+  } else {
+    test = expand(secret, Shape.Paper);
+    if (hashEquals(commited, test)) {
+      shape = Shape.Paper;
+    } else {
+      test = expand(secret, Shape.Scissor);
+      if (hashEquals(commited, test)) {
+        shape = Shape.Scissor;
+      } else {
+        throw new Error("The password entered doesn't match the one you used to create the game.");
+      }
+    }
+  }
+  console.log("Playing: " + shapeToString(shape));
 
   let h = getSecretSmall(secret);
   let tx = await program.rpc.revealGame(shape, h, {
@@ -224,6 +263,7 @@ export async function reveal(
     },
     signers: [],
   });
+  return tx;
 }
 
 // if game as expired, player 1 can come and close it to recover his token

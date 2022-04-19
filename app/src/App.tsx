@@ -10,6 +10,7 @@ import ThemeWrapper from 'components/ThemeWrapper';
 import Fight from 'features/Routes/Fight';
 import Create from 'features/Routes/Create';
 import Share from 'features/Routes/Share';
+import AdminList from 'features/Routes/Admin/AdminList';
 
 const Homepage = lazy(() => import('./features/Routes/Homepage'));
 
@@ -86,6 +87,13 @@ function App() {
               <Suspense fallback={renderLoader()}>
                 <ThemeWrapper darkMode={false} nav={true} footer={true} forceH={true}>
                   <Fight />
+                </ThemeWrapper>
+              </Suspense>
+            </Route>
+            <Route path={Routes.AdminList} exact>
+              <Suspense fallback={renderLoader()}>
+                <ThemeWrapper darkMode={false} nav={true} footer={true} forceH={true}>
+                  <AdminList />
                 </ThemeWrapper>
               </Suspense>
             </Route>
