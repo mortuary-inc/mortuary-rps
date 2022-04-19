@@ -25,11 +25,13 @@ const Fight = () => {
   const { id } = useParams() as { id: string };
 
   const [currentGame, setCurrentGame] = useState<ProgramAccount<GameAccount>>();
+  const [isInitiator, setIsInitiator] = useState<boolean>(false);
   const [isMatching, setIsMatching] = useState<boolean>(false);
   const [isRevealing, setIsRevealing] = useState<boolean>(false);
   const [shape, setShape] = useState<Shape>(Shape.Rock);
   const [isStartStage, setIsStartStage] = useState<boolean>(false);
   const [isGameExpired, setIsGameExpired] = useState<boolean>(false);
+  const [password, setPassword] = useState<string>('');
 
   useEffect(() => {
     if (!wallet || !publicKey) return;
@@ -46,9 +48,11 @@ const Fight = () => {
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
         const selectedGame = rpsList.find((rps) => rps.publicKey.toBase58() === id);
-        setCurrentGame(selectedGame);
 
+        //init state
+        setCurrentGame(selectedGame);
         setIsStartStage(!!selectedGame?.account.stage['start']);
+        setIsInitiator(selectedGame?.account.playerOne.toBase58() === publicKey.toBase58());
         setIsGameExpired(
           Number(new Date()) >
             (Number(selectedGame?.account?.lastUpdate) + Number(selectedGame?.account?.duration)) *
@@ -106,7 +110,8 @@ const Fight = () => {
       }
     } else if (
       currentGame?.account.playerTwoRevealed &&
-      currentGame?.account.playerOne.toBase58() === publicKey.toBase58()
+      currentGame?.account.playerOne.toBase58() === publicKey.toBase58() &&
+      password
     ) {
       try {
         setIsRevealing(true);
@@ -181,62 +186,58 @@ const Fight = () => {
       ) : (
         <div>Fighting Placeholder</div>
       )}
-      <Button
-        variant="cta"
-        onClick={handleMatchOrReveal}
-        disabled={
-          isGameExpired ||
-          isMatching ||
-          isRevealing ||
-          !wallet ||
-          (!isStartStage &&
-            publicKey?.toBase58() !== currentGame?.account.playerOne.toBase58() &&
-            !currentGame?.account.playerTwoRevealed)
-        }
-        className={`${
-          isGameExpired ||
-          isMatching ||
-          isRevealing ||
-          !wallet ||
-          (!isStartStage &&
-            publicKey?.toBase58() !== currentGame?.account.playerOne.toBase58() &&
-            !currentGame?.account.playerTwoRevealed)
-            ? 'opacity-50 cursor-not-allowed bg-primus-dark-grey'
-            : ''
-        }`}
-      >
-        {!publicKey ? (
-          'CONNECT WALLET TO FIGHT'
-        ) : isGameExpired ? (
-          'EXPIRED'
-        ) : currentGame &&
-          publicKey?.toBase58() === currentGame?.account.playerOne.toBase58() &&
-          currentGame?.account.playerTwoRevealed &&
-          !isRevealing ? (
-          'REVEAL NOW'
-        ) : !isStartStage && currentGame ? (
-          <Countdown
-            date={
-              (Number(currentGame?.account?.lastUpdate) + Number(currentGame?.account?.duration)) *
-              1000
-            }
-            renderer={({ hours, minutes, seconds }) => {
-              return (
-                <div>
-                  {hours < 10 ? `0${hours}` : hours}:{minutes < 10 ? `0${minutes}` : minutes}:
-                  {seconds < 10 ? `0${seconds}` : seconds}
-                </div>
-              );
-            }}
-          />
-        ) : isMatching ? (
-          'MATCHING...'
-        ) : isRevealing ? (
-          'REVEALING...'
-        ) : (
-          'FIGHT'
-        )}
-      </Button>
+
+      {isInitiator && currentGame?.account.playerTwoRevealed && (
+        <>
+          <div className="font-sans text-primus-label text-sm text-left mt-3 mb-1">
+            Enter your password
+          </div>
+          <div className="h-70px w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
+            <input
+              type="password"
+              placeholder="INSERT YOUR PASSWORD HERE"
+              className="bg-primus-light-orange px-4 rounded-3px w-full font-serif text-2xl"
+              onChange={(e) => setPassword(e.target.value)}
+            ></input>
+          </div>
+        </>
+      )}
+
+      {!publicKey ? (
+        <Button
+          variant="cta"
+          disabled
+          className="opacity-50 cursor-not-allowed bg-primus-dark-grey"
+          onClick={() => {}}
+        >
+          CONNECT WALLET TO FIGHT
+        </Button>
+      ) : isGameExpired ? (
+        <Button
+          variant="cta"
+          disabled
+          className="opacity-50 cursor-not-allowed bg-primus-dark-grey"
+          onClick={() => {}}
+        >
+          EXPIRED
+        </Button>
+      ) : isStartStage && !isInitiator ? (
+        <Button
+          variant="cta"
+          onClick={handleMatchOrReveal}
+          className={`${isMatching ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isMatching ? 'MATCHING...' : 'MATCH'}
+        </Button>
+      ) : (
+        <Button
+          variant="cta"
+          onClick={handleMatchOrReveal}
+          className={`${isRevealing ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isRevealing ? 'REVEALING...' : 'REVEAL NOW'}
+        </Button>
+      )}
     </div>
   );
 };

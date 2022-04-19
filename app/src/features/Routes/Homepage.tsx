@@ -39,6 +39,8 @@ const Homepage = () => {
         let rpsList =
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
+        console.log(rpsList);
+
         const startedOnlyGames = rpsList.filter(
           (rps) =>
             Object.keys(rps.account.stage).find((stage) => stage === 'start') ||
