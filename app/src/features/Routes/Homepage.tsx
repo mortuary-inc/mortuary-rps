@@ -89,8 +89,16 @@ const Homepage = () => {
         >
           CREATE A GAME
         </Button>
-        <Connect />
-        <Disconnect />
+        {wallet ? (
+          <Button variant="primary" className="px-6" onClick={() => history.push('/me/games')}>
+            MY GAMES
+          </Button>
+        ) : (
+          <>
+            <Connect />
+            <Disconnect />
+          </>
+        )}
       </div>
       <>
         <h2 className="text-primus-orange font-serif text-3xl text-center mb-6">

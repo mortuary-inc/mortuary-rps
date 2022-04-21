@@ -8,7 +8,7 @@ import { GameAccount } from 'web3/rpsHelper';
 import { WSOL } from '../web3/accounts';
 import RevealButton from './RevealButton';
 
-const ItemContent = ({
+export const ItemContent = ({
   header,
   value,
 }: {
@@ -25,10 +25,12 @@ const Game = ({
   details,
   simple,
   className,
+  share,
 }: {
   details: ProgramAccount<GameAccount>;
   simple?: Boolean;
   className?: string;
+  share?: Boolean;
 }) => {
   const { publicKey } = useWallet();
   const { mint, amount, playerOne, duration, lastUpdate, stage } = details.account;
@@ -55,11 +57,13 @@ const Game = ({
           <Countdown
             date={(Number(lastUpdate) + Number(duration)) * 1000}
             renderer={({ hours, minutes, seconds }) => {
-              return (
+              return hours + minutes + seconds > 0 ? (
                 <div>
                   {hours < 10 ? `0${hours}` : hours}:{minutes < 10 ? `0${minutes}` : minutes}:
                   {seconds < 10 ? `0${seconds}` : seconds}
                 </div>
+              ) : (
+                'Expired'
               );
             }}
           />

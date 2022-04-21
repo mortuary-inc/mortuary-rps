@@ -38,30 +38,29 @@ const TopLink = () => {
           <div className="w-full">
             <div className="font-serif text-2xl">Currency</div>
             <div className="font-sans mt-2">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis massa
-              bibendum laoreet eget et urna.
+              The bids can be made in two currencies. Choose wisely: increase your $ASH stash or
+              become a SOL whale.
             </div>
           </div>
           <div className="w-full mt-4">
             <div className="font-serif text-2xl">Bid</div>
             <div className="font-sans mt-2">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis massa
-              bibendum laoreet eget et urna.
+              Be it in $ASH or in SOL, select the amount you want to play with. Please only bet
+              amounts you are comfortable parting with.
             </div>
           </div>
           <div className="w-full mt-4">
             <div className="font-serif text-2xl">Weapons</div>
             <div className="font-sans mt-2">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis massa
-              bibendum laoreet eget et urna.
+              It's a robot rock-paper-scissor game, how complicated can that be?
             </div>
             <div className="flex flex-row p-2 gap-2">
               <Rocket className="w-1/5 bg-white h-10 px-1 rounded-3px" />
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">ROCKET</div>
                 <div className="text-sm">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis
-                  urna.
+                  Rocket beats Plasma. Why bother with accuracy when you can make everything go
+                  KABOOM!
                 </div>
               </div>
             </div>
@@ -70,8 +69,7 @@ const TopLink = () => {
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">PLASMA</div>
                 <div className="text-sm">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis
-                  urna.
+                  Plasma beats sniper. The melting power of condensed energy: PEW PEW.
                 </div>
               </div>
             </div>
@@ -80,8 +78,7 @@ const TopLink = () => {
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">SNIPER</div>
                 <div className="text-sm">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis
-                  urna.
+                  Sniper beats Rocket. Stay hidden and unleash Death from afar: BANG!
                 </div>
               </div>
             </div>
@@ -89,22 +86,23 @@ const TopLink = () => {
           <div className="w-full mt-4">
             <div className="font-serif text-2xl">Timer</div>
             <div className="font-sans mt-2">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis massa
-              bibendum laoreet eget et urna.
+              Choose the time window during which player 1 (you) and player 2 (your opponent) can
+              select your respective weapon. A game that does not find an opponent after the timer
+              runs out is discarded. Once both players have selected their weapons, player 1 has the
+              same time frame to reveal the results. If the timer runs out, player 2 wins the game.
             </div>
           </div>
           <div className="w-full mt-4">
             <div className="font-serif text-2xl">Password</div>
             <div className="font-sans mt-2">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis massa
-              bibendum laoreet eget et urna.
+              Pick a password to encrypt your play on the blockchain. Don’t lose it, you will need
+              it to reveal the results. If lost, retrieving your password is impossible.
             </div>
           </div>
           <div className="w-full mt-4">
             <div className="font-serif text-2xl">Bugs</div>
             <div className="font-sans mt-2">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ac neque quis massa
-              bibendum laoreet eget et urna.
+              Should you encounter any bugs, please contact the Mortuary team on their Discord.
             </div>
           </div>
         </div>

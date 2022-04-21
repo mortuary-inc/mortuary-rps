@@ -29,7 +29,6 @@ const Share = () => {
         let program = await loadRpsProgram(connection, fake_wallet);
         let rpsList =
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
-
         const selectedGame = rpsList.find((rps) => rps.publicKey.toBase58() === id);
         setCurrentGame(selectedGame);
         toast.dismiss(loadingToast);
@@ -78,6 +77,7 @@ const Share = () => {
         >
           COPY URL
         </Button>
+
         <ShareLink
           link={`${window.location.origin}/games/${id}`}
           text={`Hey${
@@ -88,13 +88,13 @@ const Share = () => {
                     : `, @${challengedHandle}!`
                 }`
               : '!'
-          } Fight me on the Battlegrounds for ${
+          } I double dare you to be my opponent in a Rocket-Plasma-Sniper game for ${
             currentGame?.account.mint.toBase58() === ASH_MINT.toBase58()
               ? Number(currentGame?.account.amount)
               : Number(currentGame?.account.amount) / web3.LAMPORTS_PER_SOL
           } ${
             currentGame?.account.mint.toBase58() === ASH_MINT.toBase58() ? '$ASH' : '$SOL'
-          } #LegionsOfPrimus #LoPBG #RPS`}
+          }! I await you on the @legionsofprimus battlegrounds! 🤖`}
         >
           {(link) => (
             <Button variant="cta" onClick={() => (window.location.href = link)}>

@@ -7,6 +7,7 @@ import { Routes } from 'routes/conf';
 import TextDef from 'i18n/default.json';
 import useAppText from 'hooks/useAppText';
 import ThemeWrapper from 'components/ThemeWrapper';
+import MyGames from 'features/Routes/MyGames';
 import Fight from 'features/Routes/Fight';
 import Create from 'features/Routes/Create';
 import Share from 'features/Routes/Share';
@@ -66,6 +67,13 @@ function App() {
               <Suspense fallback={renderLoader()}>
                 <ThemeWrapper darkMode={false} nav={true} footer={true} forceH={true}>
                   <Homepage />
+                </ThemeWrapper>
+              </Suspense>
+            </Route>
+            <Route path={Routes.MyGames} exact>
+              <Suspense fallback={renderLoader()}>
+                <ThemeWrapper darkMode={false} nav={true} footer={true} forceH={true}>
+                  <MyGames />
                 </ThemeWrapper>
               </Suspense>
             </Route>

@@ -1,8 +1,9 @@
 import { ProgramAccount, web3 } from '@project-serum/anchor';
 import { useAnchorWallet, useWallet } from '@solana/wallet-adapter-react';
-import { useLocation, useParams } from 'react-router-dom';
-import { GameAccount, Shape, getGame } from 'web3/rpsHelper';
-import Game from 'components/Game';
+import { useHistory, useParams } from 'react-router-dom';
+import { GameAccount, Shape, getGame, terminate, recover } from 'web3/rpsHelper';
+import { loadLegions } from 'web3/nftHelper';
+import Game, { ItemContent } from 'components/Game';
 import { Tab } from '@headlessui/react';
 import { Button } from 'components/Button';
 import { ReactComponent as Rocket } from 'assets/rocket.svg';
@@ -10,19 +11,21 @@ import { ReactComponent as Plasma } from 'assets/plasma.svg';
 import { ReactComponent as Sniper } from 'assets/sniper.svg';
 import { useState, useEffect } from 'react';
 import styles from './Fight.module.css';
-import { fake_wallet, getATA, loadRpsProgram, match, reveal } from '../../web3/rpsHelper';
+import { getATA, loadRpsProgram, match, reveal } from '../../web3/rpsHelper';
 import { ASH_MINT, SOLANA_RPC_HOST } from '../../web3/accounts';
 
 import toast from 'react-hot-toast';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Notification } from '../Notification/Notification';
-import Countdown from 'react-countdown';
+import { truncateAddress } from 'lib/utils';
 
 const Fight = () => {
   const { publicKey } = useWallet();
   const wallet = useAnchorWallet();
   const { id } = useParams() as { id: string };
+
+  const history = useHistory();
 
   const [currentGame, setCurrentGame] = useState<ProgramAccount<GameAccount>>();
   const [isInitiator, setIsInitiator] = useState<boolean>(false);
@@ -32,6 +35,8 @@ const Fight = () => {
   const [isStartStage, setIsStartStage] = useState<boolean>(false);
   const [isGameExpired, setIsGameExpired] = useState<boolean>(false);
   const [password, setPassword] = useState<string>('');
+  const [playerOneLegion, setPlayerOneLegion] = useState<string>('');
+  const [playerTwoLegion, setPlayerTwoLegion] = useState<string>('');
 
   useEffect(() => {
     if (!wallet || !publicKey) return;
@@ -58,6 +63,22 @@ const Fight = () => {
             (Number(selectedGame?.account?.lastUpdate) + Number(selectedGame?.account?.duration)) *
               1000
         );
+
+        const playerOneLegionImage = await loadLegions(
+          connection,
+          selectedGame?.account.playerOne!
+        );
+
+        setPlayerOneLegion(playerOneLegionImage[0].animation_url);
+
+        const playerTwoLegionImage = await loadLegions(
+          connection,
+          selectedGame?.account.playerTwo
+            ? selectedGame?.account.playerTwo
+            : new web3.Keypair().publicKey
+        );
+
+        setPlayerTwoLegion(playerTwoLegionImage[0].animation_url);
 
         toast.dismiss(loadingToast);
         toast.custom(<Notification message={`Game loaded`} variant="success" />);
@@ -119,13 +140,31 @@ const Fight = () => {
 
         const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
 
-        await reveal(program, game, publicKey, 'secret');
+        await reveal(program, game, publicKey, password);
         toast.custom(<Notification message={`Revealed!`} variant="success" />);
         setIsRevealing(false);
       } catch (e) {
         toast.custom(<Notification message={`Failed to reveal. ${e}`} variant="error" />);
         setIsRevealing(false);
       }
+    }
+  };
+
+  const handleCloseGame = async () => {
+    if (!wallet || !publicKey) return;
+
+    let connection = new web3.Connection(SOLANA_RPC_HOST);
+    let program = await loadRpsProgram(connection, wallet);
+
+    try {
+      const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
+
+      await terminate(program, game, publicKey);
+      await recover(program, game, publicKey, currentGame?.account.playerOneTokenAccount!);
+      toast.custom(<Notification message={`Game closed.`} variant="success" />);
+      history.push('/rps');
+    } catch (e) {
+      toast.custom(<Notification message={`Failed to close game. ${e}`} variant="error" />);
     }
   };
 
@@ -139,52 +178,83 @@ const Fight = () => {
         It is time to find a worthy opponent.
       </div>
       {currentGame ? (
-        <Game className="mt-5" details={currentGame} simple={true} />
+        <Game className="mt-5" details={currentGame} simple={true} share={isInitiator} />
       ) : (
         <Skeleton count={2} />
       )}
-      <div className="font-sans text-primus-label text-sm text-left mt-3 mb-2">
-        Choose your weapon
-      </div>
 
-      {isStartStage ? (
-        <Tab.Group defaultIndex={0} onChange={handleWeaponChange}>
-          <Tab.List className="h-44 w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
-            <Tab
-              className={({ selected }) =>
-                `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
-              }
-            >
-              <Rocket
-                className={`m-auto ${shape === Shape.Rock ? styles.selected : styles.unselected}`}
-              />
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                `bg-rps-bg h-full w-full rounded-3px ${
-                  !selected ? '' : 'shadow-border text-primus-orange'
-                }`
-              }
-            >
-              <Plasma
-                className={`m-auto ${shape === Shape.Paper ? styles.selected : styles.unselected}`}
-              />
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
-              }
-            >
-              <Sniper
-                className={`m-auto ${
-                  shape === Shape.Scissor ? styles.selected : styles.unselected
-                }`}
-              />
-            </Tab>
-          </Tab.List>
-        </Tab.Group>
+      {isStartStage && !isInitiator && !isGameExpired ? (
+        <>
+          <div className="font-sans text-primus-label text-sm text-left mt-3 mb-2">
+            Choose your weapon
+          </div>
+          <Tab.Group defaultIndex={0} onChange={handleWeaponChange}>
+            <Tab.List className="h-44 w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
+              <Tab
+                className={({ selected }) =>
+                  `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
+                }
+              >
+                <Rocket
+                  className={`m-auto ${shape === Shape.Rock ? styles.selected : styles.unselected}`}
+                />
+              </Tab>
+              <Tab
+                className={({ selected }) =>
+                  `bg-rps-bg h-full w-full rounded-3px ${
+                    !selected ? '' : 'shadow-border text-primus-orange'
+                  }`
+                }
+              >
+                <Plasma
+                  className={`m-auto ${
+                    shape === Shape.Paper ? styles.selected : styles.unselected
+                  }`}
+                />
+              </Tab>
+              <Tab
+                className={({ selected }) =>
+                  `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
+                }
+              >
+                <Sniper
+                  className={`m-auto ${
+                    shape === Shape.Scissor ? styles.selected : styles.unselected
+                  }`}
+                />
+              </Tab>
+            </Tab.List>
+          </Tab.Group>
+        </>
       ) : (
-        <div>Fighting Placeholder</div>
+        <div className="mb-2">
+          <div className="flex flex-row w-full gap-3 mt-2">
+            {playerOneLegion && (
+              <video width="250" autoPlay loop className="rounded-3px shadow-primus">
+                <source src={playerOneLegion} type="video/mp4" />
+              </video>
+            )}
+            {playerTwoLegion && (
+              <video width="250" autoPlay loop className="rounded-3px shadow-primus">
+                <source src={playerTwoLegion} type="video/mp4" />
+              </video>
+            )}
+          </div>
+          <div className="flex flex-row w-full gap-3 mt-2">
+            <div className="w-64">
+              <ItemContent
+                header="PLAYER 1"
+                value={`${truncateAddress(currentGame?.account.playerOne.toBase58() || '')}`}
+              />
+            </div>
+            <div className="w-64">
+              <ItemContent
+                header="PLAYER 2"
+                value={`${truncateAddress(currentGame?.account.playerTwo.toBase58() || '')}`}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {isInitiator && currentGame?.account.playerTwoRevealed && (
@@ -213,14 +283,19 @@ const Fight = () => {
           CONNECT WALLET TO FIGHT
         </Button>
       ) : isGameExpired ? (
-        <Button
-          variant="cta"
-          disabled
-          className="opacity-50 cursor-not-allowed bg-primus-dark-grey"
-          onClick={() => {}}
-        >
-          EXPIRED
-        </Button>
+        <>
+          <Button
+            variant="cta"
+            disabled
+            className="opacity-50 cursor-not-allowed bg-primus-dark-grey"
+            onClick={() => {}}
+          >
+            EXPIRED
+          </Button>
+          <div onClick={handleCloseGame} className="underline cursor-pointer mt-2">
+            Close game
+          </div>
+        </>
       ) : isStartStage && !isInitiator ? (
         <Button
           variant="cta"
@@ -229,13 +304,21 @@ const Fight = () => {
         >
           {isMatching ? 'MATCHING...' : 'MATCH'}
         </Button>
-      ) : (
+      ) : currentGame?.account.playerTwoRevealed && isInitiator ? (
         <Button
           variant="cta"
           onClick={handleMatchOrReveal}
           className={`${isRevealing ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {isRevealing ? 'REVEALING...' : 'REVEAL NOW'}
+        </Button>
+      ) : (
+        <Button
+          variant="cta"
+          onClick={() => history.push(`/games/${currentGame?.publicKey.toBase58()}/share`)}
+          className={`${isRevealing ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          SHARE GAME
         </Button>
       )}
     </div>

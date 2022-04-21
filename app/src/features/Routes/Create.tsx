@@ -32,6 +32,7 @@ const Create = () => {
   const [shape, setShape] = useState<Shape>(Shape.Rock);
   const [timer, setTimer] = useState<number>(3600);
   const [password, setPassword] = useState<string>('');
+  const [reveal, setReveal] = useState<boolean>(false);
 
   const handleWeaponChange = (index: Number) => {
     if (index === 0) {
@@ -91,7 +92,7 @@ const Create = () => {
         timer
       );
 
-      history.push(`/games/${new web3.Keypair().publicKey}/share`);
+      history.push(`/games/${game.toBase58()}/share`);
 
       toast.dismiss(loadingToast);
       setIsCreating(false);
@@ -108,7 +109,7 @@ const Create = () => {
       <div className="font-serif text-4xl text-primus-title">CREATE A NEW GAME </div>
 
       <div className="font-sans text-primus-label text-sm text-left mt-3 mb-1">
-        Choose your curency
+        Choose your currency
       </div>
       <Tab.Group
         defaultIndex={0}
@@ -254,13 +255,19 @@ const Create = () => {
       <div className="font-sans text-primus-label text-sm text-left mt-3 mb-1">
         Select a password
       </div>
-      <div className="h-70px w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
+      <div className="h-70px w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px relative">
         <input
-          type="password"
+          type={reveal ? 'text' : 'password'}
           placeholder="INSERT YOUR PASSWORD HERE"
           className="bg-primus-light-orange px-4 rounded-3px w-full font-serif text-2xl"
           onChange={(e) => setPassword(e.target.value)}
         ></input>
+        <button
+          className="cursor-pointer absolute right-4 top-4 text-3xl text-primus-dark-grey"
+          onClick={() => setReveal(!reveal)}
+        >
+          {reveal ? '🙉' : '🙈'}
+        </button>
       </div>
 
       <Button

@@ -106,9 +106,9 @@ export enum Shape {
 }
 
 export function shapeToString(shape: Shape) {
-  if(shape === Shape.Paper) return "Paper/Plasma";
-  if(shape === Shape.Scissor) return "Scissor/Sniper";
-  if(shape === Shape.Rock) return "Rock/Rocket";
+  if (shape === Shape.Paper) return "Paper/Plasma";
+  if (shape === Shape.Scissor) return "Scissor/Sniper";
+  if (shape === Shape.Rock) return "Rock/Rocket";
   return "";
 }
 
@@ -270,7 +270,7 @@ export async function reveal(
 export async function recover(
   program: Program<Rps>,
   game: web3.PublicKey,
-  payer: web3.Keypair,
+  payer: web3.PublicKey,
   payerTokenAccount: web3.PublicKey
 ) {
   let gameData = (await program.account.game.fetch(game)) as unknown as GameAccount;
@@ -278,7 +278,7 @@ export async function recover(
 
   let tx = await program.rpc.recover({
     accounts: {
-      payer: payer.publicKey,
+      payer: payer,
       game: game,
       payerTokenAccount: payerTokenAccount,
       proceeds: proceeds,
@@ -287,19 +287,19 @@ export async function recover(
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     },
-    signers: [payer],
+    signers: [],
   });
 }
 
 // if player doesn't come back after xx seconds, anyone can close the game (p2 win)
-export async function terminate(program: Program<Rps>, game: web3.PublicKey, payer: web3.Keypair) {
+export async function terminate(program: Program<Rps>, game: web3.PublicKey, payer: web3.PublicKey) {
   let gameData = (await program.account.game.fetch(game)) as unknown as GameAccount;
   let [proceeds] = await getProceeds(game);
   let [history] = await getHistory(game);
 
   let tx = await program.rpc.terminateGame({
     accounts: {
-      payer: payer.publicKey,
+      payer: payer,
       game: game,
       playerTwo: gameData.playerTwo,
       playerTwoTokenAccount: gameData.playerTwoTokenAccount,
@@ -311,7 +311,7 @@ export async function terminate(program: Program<Rps>, game: web3.PublicKey, pay
       tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     },
-    signers: [payer],
+    signers: [],
   });
 }
 

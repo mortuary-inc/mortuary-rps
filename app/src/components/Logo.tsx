@@ -51,7 +51,8 @@ const Logo = () => {
         <p>
           Bids in the game can be made in $ASH (Mortuary Inc utility token) or in $SOL. Winner takes
           almost all! Here’s the deal: 5% of all $ASH winning bets return back to the $ASH pool
-          whereas 5% of all SOL winning bets are redistributed among Legions of Primus holders.
+          whereas 3.5 % of all SOL winning bets are redistributed among Legions of Primus holders
+          while 1.5 % goes to the Mortuary Inc treasury.
         </p>
       </div>
     </div>
