@@ -20,6 +20,6 @@ export const BANK_CONFIG = new web3.PublicKey(
 export const BANK = new web3.PublicKey(
   SOLANA_NETWORK == 'devnet'
     ? 'F7sVZeMGb7jbkHrEQzmjM7Mp1hXcvrtGTVE85dhoLDrz'
-    : '7kLPmSPFaMrK3uns2b9J4Wq9Cs31h5tqwAuqNnK3pCtS'
+    : '32t5WXx3QkEee5zxZuF4myFCFvALaJu1pVUMeigx2nUt'
 );
 export const ADMIN = new web3.PublicKey('HAjs9EJxN3BZsratYKMnibgKXr84QFWBDtwdnR7qyB7J');

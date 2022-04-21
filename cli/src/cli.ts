@@ -7,7 +7,6 @@ import rpsIdl from '../../app/src/web3/rps.json';
 import { BankConfig, getBankConfigAddress, RPS_PROGRAM_ID } from "../../app/src/web3/rpsHelper";
 import { Rps } from "../../app/src/web3/rps";
 import { initBank } from "./init";
-import { ASH_MINT } from "../../app/src/web3/accounts";
 
 async function run() {
     let network = "devnet";
@@ -28,10 +27,10 @@ async function run() {
         rpc = clusterApiUrl(network as Cluster);
         ash = '3pS315UKoD5s9AQkaWJNaPSDPnCX6YZmV3thRCSgFo2u';
     }
-    
 
-    const keypair = web3.Keypair.fromSecretKey(new Uint8Array(JSON.parse(fs.readFileSync("/Users/mbarbier/.config/solana/main.json").toString())));
+    const keypair = web3.Keypair.fromSecretKey(new Uint8Array(JSON.parse(fs.readFileSync("/home/mathieu/.config/solana/main.json").toString())));
     console.log("Loaded keypair of " + keypair.publicKey);
+    console.log("$ASH " + ash);
 
     const walletWrapper = new anchor.Wallet(keypair);
     const connection = new web3.Connection(rpc, "confirmed");
