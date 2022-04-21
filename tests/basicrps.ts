@@ -158,7 +158,8 @@ describe("rps basic", () => {
             await terminate(program, game, u3);
             assert.fail("should not pass here");
         } catch (e) {
-            assert.equal(e.message, "6011: Game is live");
+            let msg = (e?.error?.errorMessage ?? e.message);
+            assert.equal(msg, "Game is live");
         }
         restoreLogging(loggers);
 
@@ -245,7 +246,8 @@ describe("rps basic", () => {
             // reveal
             await reveal(program, game, u1, Shape.Rock, "badsecret");
         } catch (e) {
-            assert.equal(e.message, "6000: Your combinaison (secret+weapon) doesn't match what you played when you created the game.");
+            let msg = (e?.error?.errorMessage ?? e.message);
+            assert.equal(msg, "Your combinaison (secret+weapon) doesn't match what you played when you created the game.");
         }
         restoreLogging(loggers);
     });
@@ -263,7 +265,7 @@ describe("rps basic", () => {
 
         let { game } = await start(program, admin.publicKey, u3, ashMintPubkey, u3AshToken, 10, "chut", Shape.Scissor, 1);
         await match(program, game, ashMintPubkey, u9, u9AshToken, Shape.Rock);
-        await sleep(1000);
+        await sleep(1500);
         await terminate(program, game, u4);
 
         let history = await loadHistory(program, u9.publicKey);
@@ -286,7 +288,8 @@ describe("rps basic", () => {
             await recover(program, game, u1, u1AshToken);
             assert.fail("should not pass here");
         } catch (e) {
-            assert.equal(e.message, "6011: Game is live");
+            let msg = (e?.error?.errorMessage ?? e.message);
+            assert.equal(msg, "Game is live");
         }
         restoreLogging(loggers);
 
@@ -301,7 +304,8 @@ describe("rps basic", () => {
             await match(program, game, ashMintPubkey, u2, u2AshToken, Shape.Scissor);
             assert.fail("should not pass here");
         } catch (e) {
-            assert.equal(e.message, "6010: Game is expired");
+            let msg = (e?.error?.errorMessage ?? e.message);
+            assert.equal(msg, "Game is expired");
         }
         restoreLogging(loggers);
 
