@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react';
 import styles from './Fight.module.css';
 import { getATA, loadRpsProgram, match, reveal } from '../../web3/rpsHelper';
 import { ASH_MINT, SOLANA_RPC_HOST } from '../../web3/accounts';
+import Countdown from 'react-countdown';
 
 import toast from 'react-hot-toast';
 import Skeleton from 'react-loading-skeleton';
@@ -37,6 +38,7 @@ const Fight = () => {
   const [password, setPassword] = useState<string>('');
   const [playerOneLegion, setPlayerOneLegion] = useState<string>('');
   const [playerTwoLegion, setPlayerTwoLegion] = useState<string>('');
+  const [isClosingGame, setIsClosingGame] = useState<boolean>(false);
 
   useEffect(() => {
     if (!wallet || !publicKey) return;
@@ -156,14 +158,29 @@ const Fight = () => {
     let connection = new web3.Connection(SOLANA_RPC_HOST);
     let program = await loadRpsProgram(connection, wallet);
 
+    const closingGameToast = toast.custom(
+      <Notification message={`Closing game...`} variant="info" />,
+      {
+        duration: 61000,
+      }
+    );
+
     try {
+      setIsClosingGame(true);
       const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
 
-      await terminate(program, game, publicKey);
-      await recover(program, game, publicKey, currentGame?.account.playerOneTokenAccount!);
+      if (isGameExpired && !currentGame?.account.playerTwoRevealed) {
+        await recover(program, game, publicKey, currentGame?.account.playerOneTokenAccount!);
+      } else {
+        await terminate(program, game, publicKey);
+      }
+      toast.dismiss(closingGameToast);
+      setIsClosingGame(false);
       toast.custom(<Notification message={`Game closed.`} variant="success" />);
-      history.push('/rps');
+      history.push('/');
     } catch (e) {
+      toast.dismiss(closingGameToast);
+      setIsClosingGame(false);
       toast.custom(<Notification message={`Failed to close game. ${e}`} variant="error" />);
     }
   };
@@ -292,9 +309,17 @@ const Fight = () => {
           >
             EXPIRED
           </Button>
-          <div onClick={handleCloseGame} className="underline cursor-pointer mt-2">
-            Close game
-          </div>
+          {(currentGame?.account.playerOne.toBase58() === publicKey.toBase58() ||
+            currentGame?.account.playerTwo.toBase58() === publicKey.toBase58()) && (
+            <div
+              onClick={handleCloseGame}
+              className={`underline mt-2 ${
+                isClosingGame ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+              }`}
+            >
+              {isClosingGame ? 'Closing game...' : 'Close game'}
+            </div>
+          )}
         </>
       ) : isStartStage && !isInitiator ? (
         <Button
@@ -311,6 +336,28 @@ const Fight = () => {
           className={`${isRevealing ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {isRevealing ? 'REVEALING...' : 'REVEAL NOW'}
+        </Button>
+      ) : currentGame?.account.playerTwoRevealed && !isInitiator ? (
+        <Button
+          variant="cta"
+          onClick={() => {}}
+          className="opacity-50 cursor-not-allowed bg-primus-dark-grey"
+        >
+          <Countdown
+            date={
+              (Number(currentGame.account.lastUpdate) + Number(currentGame.account.duration)) * 1000
+            }
+            renderer={({ hours, minutes, seconds }) => {
+              return hours + minutes + seconds > 0 ? (
+                <div>
+                  {hours < 10 ? `0${hours}` : hours}:{minutes < 10 ? `0${minutes}` : minutes}:
+                  {seconds < 10 ? `0${seconds}` : seconds}
+                </div>
+              ) : (
+                'EXPIRED'
+              );
+            }}
+          />
         </Button>
       ) : (
         <Button

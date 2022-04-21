@@ -125,13 +125,13 @@ const MyGames = () => {
                     ? `[${timestamp}] ${truncateAddress(
                         playerTwo.toBase58()
                       )} played a game against you for ${
-                        mint === 0 ? Number(bid) / 1000000000 : bid
-                      } ${mint === 0 ? 'SOL' : 'ASH'} and ${winner === 1 ? 'won' : 'lost'}.`
+                        mint === 0 ? Number(bid) / 100000000 : bid
+                      } ${mint === 0 ? 'SOL' : 'ASH'} and you ${winner === 1 ? 'won' : 'lost'}.`
                     : `[${timestamp}] You played a game against ${truncateAddress(
                         playerOne.toBase58()
-                      )} for ${mint === 0 ? Number(bid) / 1000000000 : bid} ${
+                      )} for ${mint === 0 ? Number(bid) / 100000000 : bid} ${
                         mint === 0 ? 'SOL' : 'ASH'
-                      } and ${winner === 2 ? 'won' : 'lost'}.`}
+                      } and you ${winner === 2 ? 'won' : 'lost'}.`}
                 </div>
               );
             })

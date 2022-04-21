@@ -33,7 +33,8 @@ const Game = ({
   share?: Boolean;
 }) => {
   const { publicKey } = useWallet();
-  const { mint, amount, playerOne, duration, lastUpdate, stage } = details.account;
+  const { mint, amount, playerOne, duration, lastUpdate, stage, playerTwo, playerTwoRevealed } =
+    details.account;
 
   const isSol = mint.toBase58() === WSOL.toBase58();
   const isList = !simple ?? true;
@@ -84,7 +85,12 @@ const Game = ({
           {playerOne.toBase58() === publicKey?.toBase58() && stage['match'] ? (
             <RevealButton />
           ) : (
-            <FightButton isCreator={playerOne.toBase58() === publicKey?.toBase58()} />
+            <FightButton
+              isCreator={
+                playerOne.toBase58() === publicKey?.toBase58() ||
+                (playerTwo?.toBase58() === publicKey?.toBase58() && playerTwoRevealed)
+              }
+            />
           )}
         </Link>
       )}

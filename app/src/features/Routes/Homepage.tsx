@@ -46,6 +46,7 @@ const Homepage = () => {
             Object.keys(rps.account.stage).find((stage) => stage === 'start') ||
             (publicKey && rps.account.playerOne.toBase58() === publicKey.toBase58())
         );
+
         setGamesList(startedOnlyGames);
         setFilteredList(startedOnlyGames);
         if (rpsList.length === 0) {
@@ -102,7 +103,7 @@ const Homepage = () => {
       </div>
       <>
         <h2 className="text-primus-orange font-serif text-3xl text-center mb-6">
-          GAME IN PROGRESS
+          GAMES IN PROGRESS
         </h2>
         <Tab.Group defaultIndex={0} onChange={handleChangeFilter}>
           <Tab.List className="w-104 h-12 bg-primus-light-grey rounded-10px p-1 m-auto mb-3">
