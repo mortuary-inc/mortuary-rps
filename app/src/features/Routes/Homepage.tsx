@@ -43,7 +43,7 @@ const Homepage = () => {
           (rps) =>
             rps.account.stage['start'] ||
             (rps.account.playerOne.toBase58() === publicKey?.toBase58() &&
-              !rps.account.stage['terminated'])
+              !rps.account.stage['terminate'])
         );
 
         setGamesList(startedOnlyGames);

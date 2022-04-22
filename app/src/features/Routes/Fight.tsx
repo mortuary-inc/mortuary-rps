@@ -55,7 +55,6 @@ const Fight = () => {
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
         const selectedGame = rpsList.find((rps) => rps.publicKey.toBase58() === id);
-
         //init state
         setCurrentGame(selectedGame);
         setIsStartStage(!!selectedGame?.account.stage['start']);
