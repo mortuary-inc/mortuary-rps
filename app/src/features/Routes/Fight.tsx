@@ -127,6 +127,7 @@ const Fight = () => {
         await match(program, game, currentGame?.account.mint!, publicKey, playerTwoAshToken, shape);
         toast.custom(<Notification message={`Matched!`} variant="success" />);
         setIsMatching(false);
+        window.location.reload();
       } catch (e) {
         toast.custom(<Notification message={`Failed to match. ${e}`} variant="error" />);
         setIsMatching(false);
