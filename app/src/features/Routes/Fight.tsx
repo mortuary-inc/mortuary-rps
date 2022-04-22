@@ -56,8 +56,6 @@ const Fight = () => {
 
         const selectedGame = rpsList.find((rps) => rps.publicKey.toBase58() === id);
 
-        console.log(selectedGame);
-
         //init state
         setCurrentGame(selectedGame);
         setIsStartStage(!!selectedGame?.account.stage['start']);

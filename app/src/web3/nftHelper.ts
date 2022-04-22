@@ -33,8 +33,7 @@ export async function loadLegions(connection: web3.Connection, owner: web3.Publi
     return legionByMint.get(o.mint) as LegionInfo;
   });
 
-  if(ownedLegion.length === 0) {
-    console.log("No legion, add random one");
+  if (ownedLegion.length === 0) {
     ownedLegion.push(legionByMint.get("BsV2kHQ2ZcSd2Kr2vR5F73gC7oCvQ3dUoVXqptCe72ZF") as LegionInfo);
   }
 

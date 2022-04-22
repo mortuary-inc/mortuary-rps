@@ -149,8 +149,6 @@ export async function start(
     amount = amount * web3.LAMPORTS_PER_SOL;
   }
 
-  console.log("Playing: " + shapeToString(shape));
-
   await program.rpc.startGame(new anchor.BN(amount), hash, new anchor.BN(duration), {
     accounts: {
       admin,
@@ -184,21 +182,6 @@ export async function match(
   if (mint.toBase58() == WSOL.toBase58()) {
     playerTwoAshToken = await getATA(playerTwo, WSOL);
   }
-
-  console.log("Playing: " + shapeToString(shape));
-
-  console.log({
-    accounts: {
-      game: game.toBase58(),
-      playerTwo: playerTwo.toBase58(),
-      playerTwoTokenAccount: playerTwoAshToken.toBase58(),
-      proceeds: proceeds.toBase58(),
-      clock: web3.SYSVAR_CLOCK_PUBKEY.toBase58(),
-      tokenProgram: TOKEN_PROGRAM_ID.toBase58(),
-      systemProgram: SystemProgram.programId.toBase58(),
-    },
-    signers: [],
-  });
 
   let tx = await program.rpc.matchGame(shape, {
     accounts: {
@@ -243,7 +226,6 @@ export async function reveal(
       }
     }
   }
-  console.log("Playing: " + shapeToString(shape));
 
   let h = getSecretSmall(secret);
   await program.rpc.revealGame(shape, h, {

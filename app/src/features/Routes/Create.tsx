@@ -124,8 +124,10 @@ const Create = () => {
         <Tab.List className="h-70px w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px font-serif text-2xl ${
-                !selected ? 'text-primus-grey' : 'shadow-border text-primus-orange'
+              `bg-rps-bg h-full w-full transition-all rounded-3px font-serif text-2xl ${
+                !selected
+                  ? 'text-primus-grey hover:bg-primus-grey hover:bg-opacity-60'
+                  : 'shadow-border text-primus-orange'
               }`
             }
           >
@@ -133,8 +135,10 @@ const Create = () => {
           </Tab>
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px font-serif text-2xl ${
-                !selected ? 'text-primus-grey' : 'shadow-border text-primus-orange'
+              `bg-rps-bg h-full w-full transition-all rounded-3px font-serif text-2xl ${
+                !selected
+                  ? 'text-primus-grey hover:bg-primus-grey hover:bg-opacity-60'
+                  : 'shadow-border text-primus-orange'
               }`
             }
           >
@@ -155,8 +159,10 @@ const Create = () => {
             <Tab
               key={index}
               className={({ selected }) =>
-                `bg-rps-bg h-full w-full rounded-3px font-serif text-2xl ${
-                  !selected ? 'text-primus-grey' : 'shadow-border text-primus-orange'
+                `bg-rps-bg h-full w-full transition-all rounded-3px font-serif text-2xl ${
+                  !selected
+                    ? 'text-primus-grey hover:bg-primus-grey hover:bg-opacity-60'
+                    : 'shadow-border text-primus-orange'
                 }`
               }
             >
@@ -173,7 +179,9 @@ const Create = () => {
         <Tab.List className="h-44 w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
+              `bg-rps-bg h-full w-full transition-all rounded-3px ${
+                !selected ? 'hover:bg-primus-grey hover:opacity-60' : 'shadow-border'
+              }`
             }
           >
             <Rocket
@@ -182,8 +190,10 @@ const Create = () => {
           </Tab>
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px ${
-                !selected ? '' : 'shadow-border text-primus-orange'
+              `bg-rps-bg h-full w-full transition-all rounded-3px ${
+                !selected
+                  ? 'hover:bg-primus-grey hover:opacity-60'
+                  : 'shadow-border text-primus-orange'
               }`
             }
           >
@@ -193,7 +203,9 @@ const Create = () => {
           </Tab>
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
+              `bg-rps-bg h-full w-full transition-all rounded-3px ${
+                !selected ? 'hover:bg-primus-grey hover:opacity-60' : 'shadow-border'
+              }`
             }
           >
             <Sniper
@@ -215,8 +227,10 @@ const Create = () => {
         <Tab.List className="h-70px w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px font-serif text-2xl ${
-                !selected ? 'text-primus-grey' : 'shadow-border text-primus-orange'
+              `bg-rps-bg h-full w-full transition-all rounded-3px font-serif text-2xl ${
+                !selected
+                  ? 'text-primus-grey hover:bg-primus-grey hover:bg-opacity-60'
+                  : 'shadow-border text-primus-orange'
               }`
             }
           >
@@ -224,8 +238,10 @@ const Create = () => {
           </Tab>
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px font-serif text-2xl ${
-                !selected ? 'text-primus-grey' : 'shadow-border text-primus-orange'
+              `bg-rps-bg h-full w-full transition-all rounded-3px font-serif text-2xl ${
+                !selected
+                  ? 'text-primus-grey hover:bg-primus-grey hover:bg-opacity-60'
+                  : 'shadow-border text-primus-orange'
               }`
             }
           >
@@ -233,8 +249,10 @@ const Create = () => {
           </Tab>
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px font-serif text-2xl ${
-                !selected ? 'text-primus-grey' : 'shadow-border text-primus-orange'
+              `bg-rps-bg h-full w-full transition-all rounded-3px font-serif text-2xl ${
+                !selected
+                  ? 'text-primus-grey hover:bg-primus-grey hover:bg-opacity-60'
+                  : 'shadow-border text-primus-orange'
               }`
             }
           >
@@ -242,8 +260,10 @@ const Create = () => {
           </Tab>
           <Tab
             className={({ selected }) =>
-              `bg-rps-bg h-full w-full rounded-3px font-serif text-2xl ${
-                !selected ? 'text-primus-grey' : 'shadow-border text-primus-orange'
+              `bg-rps-bg h-full w-full transition-all rounded-3px font-serif text-2xl ${
+                !selected
+                  ? 'text-primus-grey hover:bg-primus-grey hover:bg-opacity-60'
+                  : 'shadow-border text-primus-orange'
               }`
             }
           >
@@ -276,7 +296,7 @@ const Create = () => {
         disabled={isCreating || !wallet || !password || shape < 0 || shape > 2 || !timer}
         className={`${
           isCreating || !wallet || !password || shape < 0 || shape > 2 || !timer
-            ? 'opacity-50 cursor-not-allowed bg-primus-dark-grey'
+            ? 'opacity-50 cursor-not-allowed bg-primus-grey'
             : ''
         }`}
       >

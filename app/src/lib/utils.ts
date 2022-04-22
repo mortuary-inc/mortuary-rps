@@ -3,7 +3,6 @@ export const getCurrentDatetime = () => {
   const event = new Date();
 
   const currentDatetime = event.toLocaleDateString(undefined, options);
-  //console.log(currentDatetime);
 
   return currentDatetime;
 };

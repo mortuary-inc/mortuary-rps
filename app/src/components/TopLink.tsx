@@ -21,7 +21,7 @@ const TopLink = () => {
       <div
         className={`${
           styles.scroll
-        } h-screen overflow-y-auto z-20 flex col w-72 p-5 absolute top-0 transition-all bg-rps-info-bg shadow-info ${
+        } h-full overflow-y-auto z-20 flex col w-72 p-5 fixed top-0 transition-all bg-rps-info-bg shadow-info ${
           isInfoOpen ? 'left-0' : '-left-80'
         }`}
       >
@@ -99,7 +99,7 @@ const TopLink = () => {
               it to reveal the results. If lost, retrieving your password is impossible.
             </div>
           </div>
-          <div className="w-full mt-4">
+          <div className="w-full mt-4 pb-8">
             <div className="font-serif text-2xl">Bugs</div>
             <div className="font-sans mt-2">
               Should you encounter any bugs, please contact the Mortuary team on their Discord.
