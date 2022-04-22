@@ -39,12 +39,21 @@ const Homepage = () => {
         let rpsList =
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
-        const startedOnlyGames = rpsList.filter(
-          (rps) =>
-            rps.account.stage['start'] ||
-            (rps.account.playerOne.toBase58() === publicKey?.toBase58() &&
-              !rps.account.stage['terminate'])
-        );
+        const startedOnlyGames = rpsList
+          .filter(
+            (rps) =>
+              rps.account.stage['start'] ||
+              (rps.account.playerOne.toBase58() === publicKey?.toBase58() &&
+                !rps.account.stage['terminate'])
+          )
+          .sort((a, b) => {
+            return (
+              Number(b.account.lastUpdate) +
+              Number(b.account.duration) -
+              Number(a.account.lastUpdate) +
+              Number(a.account.duration)
+            );
+          });
 
         setGamesList(startedOnlyGames);
         setFilteredList(startedOnlyGames);
