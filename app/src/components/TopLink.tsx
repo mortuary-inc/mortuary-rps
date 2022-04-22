@@ -109,7 +109,7 @@ const TopLink = () => {
       </div>
       <div className="flex row justify-between z-10 relative">
         <div className="flex justify-start">
-          <Button variant="secondary" className="h-10 px-3 mr-2" onClick={() => history.goBack()}>
+          <Button variant="secondary" className="h-10 px-3 mr-2" onClick={() => history.push('/')}>
             <ArrowLeftSVG />
           </Button>
           <Button

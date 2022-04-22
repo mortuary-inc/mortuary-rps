@@ -36,14 +36,23 @@ const MyGames = () => {
         let rpsList =
           (await program.account.game.all()) as unknown as ProgramAccount<GameAccount>[];
 
-        const myGamesOnly = rpsList.filter(
-          (rps) =>
-            !rps.account.stage['terminate'] &&
-            ((publicKey && rps.account.playerOne.toBase58() === publicKey.toBase58()) ||
-              (publicKey && rps.account.playerTwo.toBase58() === publicKey.toBase58()))
-        );
+        const myGamesOnly = rpsList
+          .filter(
+            (rps) =>
+              !rps.account.stage['terminate'] &&
+              ((publicKey && rps.account.playerOne.toBase58() === publicKey.toBase58()) ||
+                (publicKey && rps.account.playerTwo.toBase58() === publicKey.toBase58()))
+          )
+          .sort(
+            (a, b) =>
+              Number(b.account.lastUpdate) +
+              Number(b.account.duration) -
+              (Number(a.account.lastUpdate) + Number(a.account.duration))
+          );
 
         const myGamesHistory = await loadHistory(program, publicKey);
+
+        myGamesHistory.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
 
         setGamesHistory(myGamesHistory);
         setGamesList(myGamesOnly);
@@ -123,7 +132,7 @@ const MyGames = () => {
                         playerTwo.toBase58()
                       )} played a game against you for ${
                         mint === 0 ? Number(bid) / 1000000000 : bid
-                      } ${mint === 0 ? 'SOL' : 'ASH'} and ${winner === 1 ? 'won' : 'lost'}.`
+                      } ${mint === 0 ? 'SOL' : 'ASH'} and you ${winner === 1 ? 'won' : 'lost'}.`
                     : `[${new Date(
                         timestamp * 60 * 1000
                       ).toLocaleString()}] You played a game against ${truncateAddress(

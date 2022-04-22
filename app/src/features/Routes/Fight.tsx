@@ -39,6 +39,7 @@ const Fight = () => {
   const [playerOneLegion, setPlayerOneLegion] = useState<string>('');
   const [playerTwoLegion, setPlayerTwoLegion] = useState<string>('');
   const [isClosingGame, setIsClosingGame] = useState<boolean>(false);
+  const [passwordReveal, setPasswordReveal] = useState<boolean>(false);
 
   useEffect(() => {
     if (!wallet || !publicKey) return;
@@ -146,7 +147,9 @@ const Fight = () => {
         const win =
           Number(playerOneShape) - Number(playerTwoShape) === 1 ||
           Number(playerOneShape) - Number(playerTwoShape) === -2;
-        toast.custom(<Notification message={`You ${win ? 'won' : 'lost'}!`} variant="success" />);
+        toast.custom(<Notification message={`You ${win ? 'won' : 'lost'}!`} variant="info" />, {
+          duration: 10000,
+        });
 
         history.push('/');
         setIsRevealing(false);
@@ -226,7 +229,11 @@ const Fight = () => {
             <Tab.List className="h-44 w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
               <Tab
                 className={({ selected }) =>
-                  `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
+                  `bg-rps-bg h-full w-full rounded-3px ${
+                    !selected
+                      ? 'hover:bg-primus-grey hover:opacity-60'
+                      : 'shadow-border text-primus-orange'
+                  }`
                 }
               >
                 <Rocket
@@ -236,7 +243,9 @@ const Fight = () => {
               <Tab
                 className={({ selected }) =>
                   `bg-rps-bg h-full w-full rounded-3px ${
-                    !selected ? '' : 'shadow-border text-primus-orange'
+                    !selected
+                      ? 'hover:bg-primus-grey hover:opacity-60'
+                      : 'shadow-border text-primus-orange'
                   }`
                 }
               >
@@ -248,7 +257,11 @@ const Fight = () => {
               </Tab>
               <Tab
                 className={({ selected }) =>
-                  `bg-rps-bg h-full w-full rounded-3px ${!selected ? '' : 'shadow-border'}`
+                  `bg-rps-bg h-full w-full rounded-3px ${
+                    !selected
+                      ? 'hover:bg-primus-grey hover:opacity-60'
+                      : 'shadow-border text-primus-orange'
+                  }`
                 }
               >
                 <Sniper
@@ -296,13 +309,19 @@ const Fight = () => {
           <div className="font-sans text-primus-label text-sm text-left mt-3 mb-1">
             Enter your password
           </div>
-          <div className="h-70px w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px">
+          <div className="h-70px w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px relative">
             <input
               type="password"
               placeholder="INSERT YOUR PASSWORD HERE"
               className="bg-primus-light-orange px-4 rounded-3px w-full font-serif text-2xl"
               onChange={(e) => setPassword(e.target.value)}
             ></input>
+            <button
+              className="cursor-pointer absolute right-4 top-4 text-3xl text-primus-dark-grey"
+              onClick={() => setPasswordReveal(!passwordReveal)}
+            >
+              {passwordReveal ? '🙉' : '🙈'}
+            </button>
           </div>
         </>
       )}
