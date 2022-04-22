@@ -25,16 +25,16 @@ const Game = ({
   details,
   simple,
   className,
-  share,
 }: {
   details: ProgramAccount<GameAccount>;
   simple?: Boolean;
   className?: string;
-  share?: Boolean;
 }) => {
   const { publicKey } = useWallet();
   const { mint, amount, playerOne, duration, lastUpdate, stage, playerTwo, playerTwoRevealed } =
     details.account;
+
+  const isGameExpired = (Number(lastUpdate) + Number(duration)) * 1000 < Date.now();
 
   const isSol = mint.toBase58() === WSOL.toBase58();
   const isList = !simple ?? true;
@@ -58,7 +58,7 @@ const Game = ({
           <Countdown
             date={(Number(lastUpdate) + Number(duration)) * 1000}
             renderer={({ hours, minutes, seconds }) => {
-              return hours + minutes + seconds > 0 ? (
+              return !isGameExpired ? (
                 <div>
                   {hours < 10 ? `0${hours}` : hours}:{minutes < 10 ? `0${minutes}` : minutes}:
                   {seconds < 10 ? `0${seconds}` : seconds}
@@ -82,15 +82,17 @@ const Game = ({
             pathname: `/games/${details.publicKey.toBase58()}`,
           }}
         >
-          {playerOne.toBase58() === publicKey?.toBase58() && stage['match'] ? (
+          {playerOne.toBase58() === publicKey?.toBase58() && stage['match'] && !isGameExpired ? (
             <RevealButton />
-          ) : (
+          ) : !isGameExpired ? (
             <FightButton
               isCreator={
                 playerOne.toBase58() === publicKey?.toBase58() ||
                 (playerTwo?.toBase58() === publicKey?.toBase58() && playerTwoRevealed)
               }
             />
+          ) : (
+            <FightButton expired />
           )}
         </Link>
       )}

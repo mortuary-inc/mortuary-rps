@@ -56,6 +56,8 @@ const Fight = () => {
 
         const selectedGame = rpsList.find((rps) => rps.publicKey.toBase58() === id);
 
+        console.log(selectedGame);
+
         //init state
         setCurrentGame(selectedGame);
         setIsStartStage(!!selectedGame?.account.stage['start']);
@@ -142,8 +144,14 @@ const Fight = () => {
 
         const [game] = await getGame(new web3.PublicKey(currentGame?.account.gameId!));
 
-        await reveal(program, game, publicKey, password);
-        toast.custom(<Notification message={`Revealed!`} variant="success" />);
+        const { playerOneShape, playerTwoShape } = await reveal(program, game, publicKey, password);
+
+        const win =
+          Number(playerOneShape) - Number(playerTwoShape) === 1 ||
+          Number(playerOneShape) - Number(playerTwoShape) === -2;
+        toast.custom(<Notification message={`You ${win ? 'won' : 'lost'}!`} variant="success" />);
+
+        history.push('/');
         setIsRevealing(false);
       } catch (e) {
         toast.custom(<Notification message={`Failed to reveal. ${e}`} variant="error" />);
@@ -190,12 +198,24 @@ const Fight = () => {
       <div className="font-serif text-4xl text-primus-title">
         {isStartStage ? 'ARE YOU READY?' : 'GRACE PERIOD...'}
       </div>
-      <div className="font-sans mt-5 text-sm text-primus-copy">Your RPS game has been created.</div>
-      <div className="font-sans text-sm text-primus-copy">
-        It is time to find a worthy opponent.
-      </div>
+      {isStartStage ? (
+        <>
+          <div className="font-sans mt-5 text-sm text-primus-copy">
+            Your RPS game has been created.
+          </div>
+          <div className="font-sans text-sm text-primus-copy">
+            It is time to find a worthy opponent.
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="font-sans mt-5 text-sm text-primus-copy">The battle has begun!</div>
+          <div className="font-sans text-sm text-primus-copy">Winner will be decided soon.</div>
+        </>
+      )}
+
       {currentGame ? (
-        <Game className="mt-5" details={currentGame} simple={true} share={isInitiator} />
+        <Game className="mt-5" details={currentGame} simple={true} />
       ) : (
         <Skeleton count={2} />
       )}

@@ -55,7 +55,7 @@ const TopLink = () => {
               It's a robot rock-paper-scissor game, how complicated can that be?
             </div>
             <div className="flex flex-row p-2 gap-2">
-              <Rocket className="w-1/5 bg-white h-10 px-1 rounded-3px" />
+              <Rocket className="w-1/5 h-10 px-1 rounded-3px" />
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">ROCKET</div>
                 <div className="text-sm">
@@ -65,7 +65,7 @@ const TopLink = () => {
               </div>
             </div>
             <div className="flex flex-row p-2 gap-2">
-              <Plasma className="w-1/5 bg-white h-10 px-1 rounded-3px" />
+              <Plasma className="w-1/5 h-10 px-1 rounded-3px" />
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">PLASMA</div>
                 <div className="text-sm">
@@ -74,7 +74,7 @@ const TopLink = () => {
               </div>
             </div>
             <div className="flex flex-row p-2 gap-2">
-              <Sniper className={'w-1/5 bg-white h-10 px-1 rounded-3px ' + styles.sniper} />
+              <Sniper className={'w-1/5 h-10 px-1 rounded-3px ' + styles.sniper} />
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">SNIPER</div>
                 <div className="text-sm">

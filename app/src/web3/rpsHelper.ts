@@ -246,7 +246,7 @@ export async function reveal(
   console.log("Playing: " + shapeToString(shape));
 
   let h = getSecretSmall(secret);
-  let tx = await program.rpc.revealGame(shape, h, {
+  await program.rpc.revealGame(shape, h, {
     accounts: {
       game: game,
       playerOne: playerOne,
@@ -263,7 +263,7 @@ export async function reveal(
     },
     signers: [],
   });
-  return tx;
+  return { playerOneShape: shape, playerTwoShape: gameData.playerTwoRevealed };
 }
 
 // if game as expired, player 1 can come and close it to recover his token

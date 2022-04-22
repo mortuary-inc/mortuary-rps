@@ -38,8 +38,9 @@ const MyGames = () => {
 
         const myGamesOnly = rpsList.filter(
           (rps) =>
-            (publicKey && rps.account.playerOne.toBase58() === publicKey.toBase58()) ||
-            (publicKey && rps.account.playerTwo.toBase58() === publicKey.toBase58())
+            !rps.account.stage['terminate'] &&
+            ((publicKey && rps.account.playerOne.toBase58() === publicKey.toBase58()) ||
+              (publicKey && rps.account.playerTwo.toBase58() === publicKey.toBase58()))
         );
 
         const myGamesHistory = await loadHistory(program, publicKey);
@@ -75,11 +76,7 @@ const MyGames = () => {
 
   return (
     <div className="mt-20 text-center m-auto max-w-lg">
-      <div className="font-serif text-4xl text-primus-title">MY GAMES</div>
-      <div className="font-sans mt-5 text-sm text-primus-copy">Your RPS game has been created.</div>
-      <div className="font-sans text-sm text-primus-copy mb-8">
-        It is time to find a worthy opponent.
-      </div>
+      <div className="font-serif text-4xl text-primus-title mb-8">MY GAMES</div>
       <Tab.Group defaultIndex={0} onChange={handleChangeFilter}>
         <Tab.List className="w-104 h-12 bg-primus-light-grey rounded-10px p-1 m-auto mb-3">
           <Tab
@@ -119,15 +116,17 @@ const MyGames = () => {
               return (
                 <div
                   key={Math.random().toString()}
-                  className="font-sans text-left text-sm text-primus-copy"
+                  className="font-sans text-left text-xs text-primus-copy"
                 >
                   {playerOne.toBase58() === publicKey?.toBase58()
-                    ? `[${timestamp}] ${truncateAddress(
+                    ? `[${new Date(timestamp * 60 * 1000).toLocaleString()}] ${truncateAddress(
                         playerTwo.toBase58()
                       )} played a game against you for ${
-                        mint === 0 ? Number(bid) / 100000000 : bid
-                      } ${mint === 0 ? 'SOL' : 'ASH'} and you ${winner === 1 ? 'won' : 'lost'}.`
-                    : `[${timestamp}] You played a game against ${truncateAddress(
+                        mint === 0 ? Number(bid) / 1000000000 : bid
+                      } ${mint === 0 ? 'SOL' : 'ASH'} and ${winner === 1 ? 'won' : 'lost'}.`
+                    : `[${new Date(
+                        timestamp * 60 * 1000
+                      ).toLocaleString()}] You played a game against ${truncateAddress(
                         playerOne.toBase58()
                       )} for ${mint === 0 ? Number(bid) / 100000000 : bid} ${
                         mint === 0 ? 'SOL' : 'ASH'
