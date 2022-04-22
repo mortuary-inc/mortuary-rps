@@ -41,7 +41,9 @@ const Homepage = () => {
 
         const startedOnlyGames = rpsList.filter(
           (rps) =>
-            rps.account.stage['start'] || rps.account.playerOne.toBase58() === publicKey?.toBase58()
+            rps.account.stage['start'] ||
+            (rps.account.playerOne.toBase58() === publicKey?.toBase58() &&
+              !rps.account.stage['terminated'])
         );
 
         setGamesList(startedOnlyGames);
