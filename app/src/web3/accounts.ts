@@ -14,12 +14,12 @@ export const ASH_MINT = new web3.PublicKey(
 // TODO update address when deployed on mainnet
 export const BANK_CONFIG = new web3.PublicKey(
   SOLANA_NETWORK == 'devnet'
-    ? 'GrAguBDmLLmSzV3xSYgsSFr1ggs8PzopP1MCgJvmNzXN'
+    ? 'Bhk2FaxD6FvRoUneEQhtbEGZfzDPUtz1NTSz31fgQFNh'
     : 'GrAguBDmLLmSzV3xSYgsSFr1ggs8PzopP1MCgJvmNzXN'
 );
 export const BANK = new web3.PublicKey(
   SOLANA_NETWORK == 'devnet'
-    ? 'F7sVZeMGb7jbkHrEQzmjM7Mp1hXcvrtGTVE85dhoLDrz'
+    ? '8JBULT72XGL21cBySd3cikaB37UuivKRYgVbWTtnFbsT'
     : '32t5WXx3QkEee5zxZuF4myFCFvALaJu1pVUMeigx2nUt'
 );
 export const ADMIN = new web3.PublicKey('HAjs9EJxN3BZsratYKMnibgKXr84QFWBDtwdnR7qyB7J');
