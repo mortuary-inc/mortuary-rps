@@ -59,7 +59,7 @@ const TopLink = () => {
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">ROCKET</div>
                 <div className="text-sm">
-                  Rocket beats Plasma. Why bother with accuracy when you can make everything go
+                  Rocket beats Sniper. Why bother with accuracy when you can make everything go
                   KABOOM!
                 </div>
               </div>
@@ -69,7 +69,7 @@ const TopLink = () => {
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">PLASMA</div>
                 <div className="text-sm">
-                  Plasma beats sniper. The melting power of condensed energy: PEW PEW.
+                  Plasma beats Rocket. The melting power of condensed energy: PEW PEW.
                 </div>
               </div>
             </div>
@@ -78,7 +78,7 @@ const TopLink = () => {
               <div className="flex-col w-4/5">
                 <div className="font-serif text-base">SNIPER</div>
                 <div className="text-sm">
-                  Sniper beats Rocket. Stay hidden and unleash Death from afar: BANG!
+                  Sniper beats Plasma. Stay hidden and unleash Death from afar: BANG!
                 </div>
               </div>
             </div>
