@@ -137,7 +137,7 @@ const MyGames = () => {
                         timestamp * 60 * 1000
                       ).toLocaleString()}] You played a game against ${truncateAddress(
                         playerOne.toBase58()
-                      )} for ${mint === 0 ? Number(bid) / 100000000 : bid} ${
+                      )} for ${mint === 0 ? Number(bid) / 1000000000 : bid} ${
                         mint === 0 ? 'SOL' : 'ASH'
                       } and you ${winner === 2 ? 'won' : 'lost'}.`}
                 </div>

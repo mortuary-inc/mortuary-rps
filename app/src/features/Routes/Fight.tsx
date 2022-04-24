@@ -312,7 +312,7 @@ const Fight = () => {
           </div>
           <div className="h-70px w-full bg-item-background rounded-3px p-5px m-auto mb-3 shadow-primus flex row-auto gap-5px relative">
             <input
-              type="password"
+              type={passwordReveal ? 'text' : 'password'}
               placeholder="INSERT YOUR PASSWORD HERE"
               className="bg-primus-light-orange px-4 rounded-3px w-full font-serif text-2xl"
               onChange={(e) => setPassword(e.target.value)}
